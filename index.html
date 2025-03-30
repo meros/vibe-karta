@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Europakollen - Hitta Huvudstaden!</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="app-container">
+        <h1>Europakollen!</h1>
+
+        <!-- Knapp för att nollställa spelet -->
+        <div id="controls-area">
+             <button id="reset-button">Nollställ Spelet</button>
+        </div>
+
+        <!-- Startområde (visas bara om inget sparat spel finns) -->
+        <div id="start-area">
+            <p>Klicka för att starta en ny omgång!</p>
+            <button id="start-button">Starta Spelet!</button>
+        </div>
+
+        <!-- Spelområde (visas om spelet är igång eller laddat) -->
+        <div id="game-area" style="display: none;">
+            <div id="question-area">
+                Hitta huvudstaden: <span id="city-name">?</span>
+            </div>
+
+            <!-- Karta -->
+            <div id="map"></div>
+
+            <!-- Feedback -->
+            <div id="feedback-area">
+                <p id="feedback-text"></p>
+            </div>
+
+            <!-- Dedikerad statistik-bar -->
+            <div id="stats-bar">
+                <span class="stat-item">Poäng: <strong id="score">0</strong></span>
+                <span class="stat-item">Fråga: <strong id="question-number">0</strong></span>
+                <span class="stat-item">Träffsäkerhet: <strong id="accuracy">-%</strong></span>
+                <span class="stat-item">Streak: <strong id="current-streak">0</strong></span>
+                <span class="stat-item">Bästa Streak: <strong id="best-streak">0</strong></span>
+                <span class="stat-item">Val: <strong id="difficulty">0</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+
+</body>
+</html>
