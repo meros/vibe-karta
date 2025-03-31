@@ -1,4 +1,3 @@
-// --- DOM-element ---
 const startButton = document.getElementById('start-button');
 const resetButton = document.getElementById('reset-button');
 const startArea = document.getElementById('start-area');
@@ -276,6 +275,9 @@ function displayQuestion() {
     });
     console.log("New markers added. Total on map:", markers.length);
 
+    // Adjust z-index of markers based on latitude
+    adjustMarkerZIndex();
+
     // --- Zoom map to fit all current markers ---
     if (currentChoiceLatLngs.length > 1 && map) {
         try {
@@ -445,6 +447,9 @@ function handleMarkerClick(event) {
              console.log("Zoomed to the single incorrect marker (correct marker missing?).");
         }
     }
+
+    // Adjust z-index of markers based on latitude
+    adjustMarkerZIndex();
 
     // --- Update Stats, Difficulty, Save State ---
     performanceHistory.push(isCorrect ? 1 : 0);
@@ -633,49 +638,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-
-// --- CSS (Add to your stylesheet) ---
-/*
-Make sure you have CSS rules like these:
-
-.leaflet-marker-icon {
-    filter: brightness(1.1) saturate(1.2);
-    transition: filter 0.3s ease-in-out, transform 0.2s ease; // Add transform transition
+function adjustMarkerZIndex() {
+    markers.forEach(marker => {
+        const lat = marker.getLatLng().lat;
+        const zIndex = Math.round((90 - lat) * 1000); // Higher latitude (north) gets lower z-index
+        if (marker._icon) {
+            marker._icon.style.zIndex = zIndex;
+        }
+    });
 }
-
-// Style for the correctly guessed marker OR the actual correct one when guessed wrong
-.correct-marker,
-.incorrect-marker-correct {
-    filter: brightness(1.1) saturate(3) hue-rotate(90deg); // Greenish
-    // Optional: Slightly larger?
-    // transform: scale(1.1);
-    // z-index: 1000 !important; // Ensure it's on top if needed
-}
-
-// Style for the marker that was clicked when it was the wrong answer
-.incorrect-marker-clicked {
-     filter: brightness(1.0) saturate(4) hue-rotate(0deg); // Reddish
-     // Optional: Make it stand out
-     // transform: scale(1.1);
-     // z-index: 1000 !important;
-}
-
-// Ensure map container has a defined size
-#map {
-    height: 500px; // Or your desired height
-    width: 100%;
-}
-
-// Feedback text styles
-#feedback-text {
-    margin-top: 10px;
-    font-weight: bold;
-}
-.correct {
-    color: green;
-}
-.incorrect {
-    color: red;
-}
-
-*/
