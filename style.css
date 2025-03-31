@@ -159,3 +159,8 @@ button:active {
     font-weight: 600;
     margin-left: 4px;
 }
+
+/* P922f */
+.leaflet-marker-icon {
+    position: absolute;
+}
