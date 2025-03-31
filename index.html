@@ -27,6 +27,7 @@
             <div class="hud-left">
                 <span class="hud-item">Poäng: <strong id="hud-score">0</strong></span>
                 <span class="hud-item">Streak: <strong id="hud-streak">0</strong> 🔥</span>
+                <span class="hud-item">Sköldar: <strong id="hud-shields">0</strong> 🛡️</span>
             </div>
             <div class="hud-center">
                  <h1 id="game-title">Europakollen!</h1>
@@ -46,15 +47,25 @@
                 Hitta: <span id="prompt-city-name">?</span>
             </div>
 
-            <!-- Notification Panel (for Correct/Incorrect feedback) -->
+            <!-- Notification Panel (for Correct/Incorrect feedback AND Shield Prompt) -->
             <div id="notification-panel" class="notification-hidden"> <!-- Start hidden -->
-                <span id="notification-icon"></span>
-                <span id="notification-text">Feedback text here</span>
+                <!-- Container for main icon/text -->
+                <div id="notification-main-content">
+                    <span id="notification-icon"></span>
+                    <span id="notification-text">Feedback text here</span>
+                </div>
+                <!-- Elements for Rescue Shield Prompt (initially hidden) -->
+                <div id="shield-prompt" class="hidden">
+                    <p id="shield-prompt-text">Använd 1 🛡️ för att rädda din streak?</p> <!-- Text set via JS -->
+                    <button id="shield-yes-button" class="button-primary button-small">Ja</button>
+                    <button id="shield-no-button" class="button-secondary button-small">Nej</button>
+                </div>
             </div>
 
              <!-- Start Area (Overlays map initially) -->
             <div id="start-area">
-                 <h2>Välkommen!</h2>
+                 <h2>Välkommen till Europakollen!</h2>
+                 <!-- Paragraph text will be updated by JS on DOMContentLoaded -->
                 <p>Klicka på kartan för att gissa huvudstadens läge.</p>
                 <button id="start-button" class="button-primary">Starta Nytt Spel!</button>
                 <button id="continue-button" class="button-secondary" style="display: none;">Fortsätt Spel</button>
@@ -71,7 +82,8 @@
                      <p>Fråga: <strong id="menu-question-number">0</strong></p>
                      <p>Träffsäkerhet: <strong id="menu-accuracy">-%</strong></p>
                      <p>Bästa Streak: <strong id="menu-best-streak">0</strong></p>
-                     <p>Svårighet (Val): <strong id="menu-difficulty">0</strong></p>
+                     <p>Nuvarande Svårighet (Val): <strong id="menu-difficulty">0</strong></p>
+                     <p>Sköldar: <strong id="menu-shields">0</strong> 🛡️</p>
                 </div>
                 <button id="reset-button" class="button-danger">Nollställ Spelet</button>
                 <button id="close-menu-button" class="button-secondary">Stäng Meny</button>
@@ -83,6 +95,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
             crossorigin=""></script>
+    <!-- data.js should contain the europeanCapitals array -->
     <script src="data.js"></script>
     <script src="script.js"></script>
 

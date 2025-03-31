@@ -14,6 +14,9 @@
     --error-border: #f8d7da;
     /* Dim color for incorrect clicked */
     --dimmed-filter: grayscale(80%) brightness(0.9) sepia(20%);
+    /* Shield color (Gold-ish) */
+    --shield-color: #f1c40f;
+
 
     --light-bg: #f8f9fa;
     --medium-bg: #eef1f5;
@@ -112,6 +115,14 @@ button:active {
     background-color: #c0392b;
 }
 
+/* Smaller buttons for shield prompt */
+.button-small {
+    padding: 6px 12px;
+    font-size: 0.9em;
+    margin: 0 5px; /* Horizontal spacing only */
+}
+
+
 #menu-button {
     background: none;
     border: none;
@@ -141,12 +152,14 @@ button:active {
     position: sticky; /* Keep HUD visible? Or relative? */
     top: 0;
     z-index: 1001; /* Above map but below menu overlay */
+    flex-wrap: wrap; /* Allow wrapping on small screens */
 }
 
 .hud-left, .hud-right {
     flex: 1;
     display: flex;
     align-items: center;
+    min-width: 150px; /* Ensure space */
 }
 .hud-right {
     justify-content: flex-end;
@@ -154,17 +167,24 @@ button:active {
 .hud-center {
     flex: 2; /* Give title more space */
     text-align: center;
+    margin: 5px 0; /* Add margin for wrapped layout */
 }
 
 .hud-item {
     margin-right: 15px;
     font-size: 0.95em;
     color: var(--medium-text);
+    white-space: nowrap; /* Prevent wrapping within item */
 }
 .hud-item strong {
     color: var(--dark-text);
     font-weight: 600;
     margin-left: 4px;
+}
+/* Style shield icon */
+#hud-shields {
+    color: var(--shield-color); /* Gold color for shield count */
+    font-weight: 700;
 }
 .hud-item:last-child {
     margin-right: 0;
@@ -194,7 +214,7 @@ button:active {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent white */
+    background-color: rgba(255, 255, 255, 0.95); /* Slightly less transparent white */
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -223,15 +243,16 @@ button:active {
     margin-bottom: 20px;
     color: var(--medium-text);
     font-size: 1.1em;
+    max-width: 600px; /* Limit text width */
 }
 
 /* --- Dynamic Prompt Area --- */
 #prompt-area {
     position: absolute;
-    bottom: 70px; /* Position above notification panel */
+    bottom: 80px; /* Increased bottom slightly */
     left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(44, 62, 80, 0.85); /* Semi-transparent dark blue */
+    transform: translateX(-50%) translateY(0); /* Added Y for animation */
+    background-color: rgba(44, 62, 80, 0.88); /* Slightly darker */
     color: var(--light-text);
     padding: 12px 25px;
     border-radius: 25px; /* Pill shape */
@@ -240,43 +261,84 @@ button:active {
     z-index: 40; /* Above map */
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
     white-space: nowrap; /* Prevent wrapping */
-    transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+    opacity: 0; /* Start hidden */
+    visibility: hidden;
+    transition: transform 0.4s ease-out, opacity 0.4s ease-out, visibility 0s linear 0.4s;
 }
-#prompt-area.prompt-hidden {
-    transform: translate(-50%, 100px); /* Start below */
+#prompt-area.prompt-visible { /* Use this class to show */
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    visibility: visible;
+    transition: transform 0.4s ease-out, opacity 0.4s ease-out, visibility 0s linear 0s;
+}
+
+#prompt-area.prompt-hidden { /* Use this class to hide */
+    transform: translateX(-50%) translateY(50px); /* Move down */
     opacity: 0;
+    visibility: hidden;
+     transition: transform 0.3s ease-in, opacity 0.3s ease-in, visibility 0s linear 0.3s;
 }
 #prompt-city-name {
     font-weight: 700;
     color: var(--primary-color); /* Highlight city */
 }
 
+
 /* --- Notification Panel --- */
 #notification-panel {
     position: absolute;
     bottom: 15px;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateY(120%); /* Start further down */
     width: 85%;
     max-width: 500px;
     padding: 15px 20px;
     border-radius: 10px;
+    /* Changed display to flex column for shield prompt */
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: center; /* Center items horizontally */
     justify-content: center;
     font-weight: 500;
     z-index: 45; /* Above map, below prompt if they overlap */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease; /* Bounce effect */
+    opacity: 0; /* Start hidden */
+    visibility: hidden;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease, visibility 0s linear 0.4s; /* Bounce effect */
 }
+
+#notification-panel.notification-visible {
+    transform: translateX(-50%) translateY(0); /* Move to final position */
+    opacity: 1;
+    visibility: visible;
+     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease, visibility 0s linear 0s;
+}
+
 #notification-panel.notification-hidden {
-    transform: translate(-50%, 100px); /* Start below screen */
+    transform: translateX(-50%) translateY(120%); /* Hide by moving down */
     opacity: 0;
+    visibility: hidden;
+    transition: transform 0.3s ease-in, opacity 0.3s ease-in, visibility 0s linear 0.3s;
 }
+
+/* Container for main notification text/icon */
+#notification-main-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%; /* Take full width */
+}
+
 #notification-icon {
     margin-right: 10px;
     font-size: 1.3em;
+    line-height: 1; /* Align icon better with text */
 }
+#notification-text {
+    flex-grow: 1; /* Allow text to take space */
+    text-align: center; /* Center text */
+}
+
 #notification-panel.correct {
     background-color: var(--success-bg);
     color: var(--success-color-fg); /* Match green pin */
@@ -287,43 +349,68 @@ button:active {
     color: var(--error-color); /* Keep text readable */
     border: 1px solid var(--error-border);
 }
+/* Special style for shield notification */
+#notification-panel.shield-earned {
+    background-color: #fffbeb; /* Light yellow */
+    color: #b38f00; /* Dark gold text */
+    border: 1px solid #ffe58f;
+}
+/* Style for general info/difficulty notifications */
+#notification-panel.info {
+    background-color: #e7f3fe; /* Light blue */
+    color: #0b5ed7; /* Bootstrap info blue */
+    border: 1px solid #b6d4fe;
+}
+
+
+/* Shield Prompt Area within Notification Panel */
+#shield-prompt {
+    margin-top: 15px; /* Space between main text and prompt */
+    padding-top: 10px;
+    border-top: 1px solid rgba(0,0,0,0.1); /* Separator line */
+    width: 100%;
+    text-align: center;
+}
+#shield-prompt.hidden {
+    display: none;
+}
+#shield-prompt p {
+    margin: 0 0 10px 0; /* Space below text */
+    font-size: 0.95em;
+    color: var(--medium-text); /* Use neutral color */
+}
+#shield-prompt p strong { /* Shield icon in prompt */
+     color: var(--shield-color);
+     font-weight: bold; /* Make icon bold */
+}
 
 /* --- Marker Styling --- */
 .leaflet-marker-icon {
-    /* Base marker style - NO TRANSITIONS or ANIMATIONS here */
-    /* Leaflet's default blue pin color filter: (APPROXIMATE) */
-     /* filter: hue-rotate(170deg) saturate(3) brightness(0.9); */
-     /* We let Leaflet handle the default icon */
+    /* Base marker style - NO TRANSITIONS ON FILTER */
+     /* Optional: Add transitions for other properties like transform or opacity if needed */
+     /* transition: transform 0.2s ease; */
 }
 
 /* Style for the marker when it's the CORRECT answer and revealed */
 .correct-marker-reveal {
-    /* Apply green color filter INSTANTLY, no animation/transition on transform */
-    filter: hue-rotate(240deg) saturate(6); /* Bright Green */
-    /* Optional: Slight scale up for emphasis, using a filter transition */
-    /* transform: scale(1.1); */ /* Avoid transform */
-    /* transition: filter 0.1s ease-in-out; */ /* Optional: Fast filter fade */
+    /* Apply green color filter INSTANTLY */
+    filter: hue-rotate(240deg) saturate(6) brightness(1.1); /* Bright Green */
 }
 
 /* Style for the INCORRECT marker that was CLICKED */
 .incorrect-marker-clicked {
-    /* Apply dimming filter INSTANTLY or with fast transition */
+    /* Apply dimming filter INSTANTLY or with fast transition if preferred */
     filter: var(--dimmed-filter);
-    /* transition: filter 0.2s ease; */ /* Optional fast filter transition */
-    /* REMOVED transform: scale(0.95) */
+    /* Optional: transition: filter 0.2s ease-in-out; */
+    z-index: 5 !important; /* Try bringing incorrect clicked marker slightly forward */
 }
 
 /* Style for the CORRECT marker when revealed after an INCORRECT guess */
 .incorrect-marker-correct-reveal {
     /* Apply red color filter INSTANTLY */
-     filter: hue-rotate(0deg) saturate(6); /* Bright Red */
-     /* Optional: Fast opacity transition if needed for appearance */
-     /* opacity: 1; */
-     /* transition: filter 0.1s ease, opacity 0.2s ease; */
-     /* REMOVED transform animations */
+     filter: hue-rotate(0deg) saturate(7) brightness(1.05); /* Bright Red */
+     z-index: 10 !important; /* Ensure correct answer marker is clearly visible on top */
 }
-
-/* REMOVED @keyframes markerBounce and markerAppear */
 
 
 /* --- Menu Overlay --- */
@@ -333,7 +420,7 @@ button:active {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Dark overlay */
+    background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -381,11 +468,18 @@ button:active {
     margin: 8px 0;
     color: var(--medium-text);
     font-size: 0.95em;
+    overflow: hidden; /* Clear floats */
 }
 #menu-stats strong {
     color: var(--dark-text);
     font-weight: 600;
     float: right; /* Align numbers to the right */
+    margin-left: 5px; /* Space between label and value */
+}
+/* Shield color in menu */
+#menu-shields {
+     color: var(--shield-color);
+     font-weight: 700;
 }
 
 #menu-content button {
@@ -410,9 +504,9 @@ button:active {
 .leaflet-popup-content-wrapper {
     border-radius: 8px !important;
 }
-/* Add will-change hint - This might help, might not. Test carefully. */
 .leaflet-marker-pane .leaflet-marker-icon {
-    will-change: transform;
+     /* Avoid will-change unless performance is an issue, can sometimes hinder */
+     /* will-change: transform, filter; */
 }
 
 
@@ -428,23 +522,35 @@ button:active {
         border-radius: 0; /* Remove rounding on mobile */
     }
     #main-content {
-        height: calc(100vh - 65px); /* Adjust height for smaller HUD */
+        /* Adjust height calculation for potentially wrapped HUD */
+        height: calc(100vh - 90px); /* Rough estimate, may need tweaking */
         min-height: 400px;
     }
     #top-hud {
         padding: 10px 15px;
+        justify-content: center; /* Center items when wrapped */
+    }
+     .hud-left, .hud-right {
+        flex-basis: 45%; /* Allow left/right to take up width */
+        justify-content: center; /* Center content within */
+        min-width: auto;
+    }
+     .hud-center {
+        flex-basis: 100%; /* Title takes full width when wrapped */
+        order: -1; /* Move title to top when wrapped */
+        margin-bottom: 8px;
     }
     h1#game-title {
-        font-size: 1.2em;
+        font-size: 1.3em;
     }
     .hud-item {
-        font-size: 0.85em;
+        font-size: 0.9em;
         margin-right: 10px;
     }
      #prompt-area {
-        font-size: 1em;
+        font-size: 1.1em;
         padding: 10px 20px;
-        bottom: 60px; /* Adjust position */
+        bottom: 75px; /* Adjust position */
     }
     #notification-panel {
         width: 90%;
@@ -458,8 +564,44 @@ button:active {
     }
     body {
         /* Prevent bouncing scroll on iOS */
-        position: fixed;
+       /* position: fixed; */ /* Commented out - causes issues if content overflows */
         width: 100%;
-        overflow: hidden;
+       /* overflow: hidden; */
     }
+}
+
+@media (max-width: 480px) {
+     #top-hud {
+         padding: 8px 10px;
+     }
+     h1#game-title {
+         font-size: 1.1em;
+     }
+    .hud-item {
+        font-size: 0.8em;
+        margin-right: 8px;
+    }
+     #prompt-area {
+        font-size: 1em;
+        padding: 8px 15px;
+        bottom: 65px;
+    }
+     #notification-panel {
+        padding: 10px 12px;
+        font-size: 0.85em;
+    }
+    .button-small {
+        padding: 5px 10px;
+        font-size: 0.8em;
+    }
+     #menu-stats p {
+        font-size: 0.9em;
+    }
+     #menu-content {
+         padding: 15px;
+     }
+     button {
+        padding: 8px 15px;
+        font-size: 0.95em;
+     }
 }
