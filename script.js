@@ -1,19 +1,29 @@
+// --- DOM Elements ---
 const startButton = document.getElementById('start-button');
+const continueButton = document.getElementById('continue-button');
 const resetButton = document.getElementById('reset-button');
-const startArea = document.getElementById('start-area');
-const gameArea = document.getElementById('game-area');
-const controlsArea = document.getElementById('controls-area');
-const cityNameElement = document.getElementById('city-name');
-const mapElement = document.getElementById('map');
-const feedbackTextElement = document.getElementById('feedback-text');
+const menuButton = document.getElementById('menu-button');
+const closeMenuButton = document.getElementById('close-menu-button');
 
-// Statistik-element
-const scoreElement = document.getElementById('score');
-const questionNumberElement = document.getElementById('question-number');
-const accuracyElement = document.getElementById('accuracy');
-const currentStreakElement = document.getElementById('current-streak');
-const bestStreakElement = document.getElementById('best-streak');
-const difficultyElement = document.getElementById('difficulty');
+const startArea = document.getElementById('start-area');
+const mapElement = document.getElementById('map');
+const promptArea = document.getElementById('prompt-area');
+const promptCityNameElement = document.getElementById('prompt-city-name');
+const notificationPanel = document.getElementById('notification-panel');
+const notificationTextElement = document.getElementById('notification-text');
+const notificationIconElement = document.getElementById('notification-icon');
+const menuOverlay = document.getElementById('menu-overlay');
+
+// HUD Elements
+const hudScoreElement = document.getElementById('hud-score');
+const hudStreakElement = document.getElementById('hud-streak');
+
+// Menu Stats Elements
+const menuQuestionNumberElement = document.getElementById('menu-question-number');
+const menuAccuracyElement = document.getElementById('menu-accuracy');
+const menuBestStreakElement = document.getElementById('menu-best-streak');
+const menuDifficultyElement = document.getElementById('menu-difficulty');
+
 
 // --- Spelvariabler ---
 let map;
@@ -36,15 +46,19 @@ let performanceHistory = [];
 
 let markers = []; // Holds markers currently on the map
 let correctAnswer = null;
-let blockClicks = false;
+let blockClicks = false; // Block clicks during animations/feedback
 
 // --- Local Storage Keys ---
-const STORAGE_PREFIX = 'europakollen_';
+const STORAGE_PREFIX = 'europakollen_v2_'; // Use new prefix if structure changes significantly
 const STATE_KEY = STORAGE_PREFIX + 'gameState';
 
 // --- Data (Assume europeanCapitals is loaded externally) ---
-// Example: const europeanCapitals = [ { city: "...", country: "...", lat: ..., lon: ... }, ... ];
-
+if (typeof europeanCapitals === 'undefined') {
+    console.error("CRITICAL: europeanCapitals data not loaded!");
+    // Handle this more gracefully in UI later if possible
+} else {
+    allCapitals = [...europeanCapitals];
+}
 
 // --- Funktioner ---
 
@@ -58,110 +72,112 @@ function shuffleArray(array) {
 function initMap() {
      if (map) {
         map.remove();
-        map = null; // Ensure map object is cleared
+        map = null;
     }
-    map = L.map(mapElement).setView([55, 15], 4); // Initial view
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 10, // Adjust maxZoom if needed for close-ups
-        minZoom: 3
-    }).addTo(map);
-    console.log("Map initialized.");
+    try {
+        map = L.map(mapElement, {
+            zoomControl: true, // Ensure zoom control is added
+            attributionControl: true // Keep attribution
+        }).setView([55, 15], 4); // Initial view centered on Europe
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 10,
+            minZoom: 3
+        }).addTo(map);
+
+        // Optional: Add subtle hover effect to map tiles?
+        map.on('load', () => {
+            console.log("Map initialized and tiles loaded.");
+        });
+
+    } catch (e) {
+        console.error("Leaflet map initialization failed:", e);
+        mapElement.innerHTML = '<p style="color:red; padding: 20px;">Kartan kunde inte laddas. Försök att ladda om sidan.</p>';
+    }
 }
 
-function resetGameVariables() {
+function resetGameVariables(keepBestStreak = false) {
     score = 0;
     questionNumber = 0;
     currentQuestionIndex = 0;
     currentStreak = 0;
-    // Keep bestStreak unless explicitly reset or starting fresh without loadState
-    // bestStreak = 0;
+    if (!keepBestStreak) {
+        bestStreak = 0;
+    }
     numChoices = 5;
     performanceHistory = [];
-    if (allCapitals.length === 0) {
+    // Ensure allCapitals is populated
+     if (!allCapitals || allCapitals.length === 0) {
         if (typeof europeanCapitals !== 'undefined') {
              allCapitals = [...europeanCapitals];
+             console.log("Reloaded capitals data during reset.");
         } else {
-            console.error("europeanCapitals data is not loaded!");
-            return; // Stop if data is missing
+            console.error("europeanCapitals data is missing during reset!");
+            showNotification("❌ Fel: Stadsdata saknas. Kan inte starta.", 'incorrect', 5000);
+            return false; // Indicate failure
         }
     }
     currentCapitalsOrder = [...allCapitals];
     shuffleArray(currentCapitalsOrder);
     blockClicks = false;
     console.log("Game variables reset.");
+    return true; // Indicate success
 }
 
 function startGame(isContinuing = false) {
     console.log(`Starting game (isContinuing: ${isContinuing})`);
-    if (allCapitals.length === 0) {
-       if (typeof europeanCapitals !== 'undefined') {
-            allCapitals = [...europeanCapitals];
-            console.log("Capitals loaded.");
-       } else {
-            console.error("europeanCapitals data is not loaded! Cannot start game.");
-            feedbackTextElement.textContent = "Error: Capital data not loaded.";
-            feedbackTextElement.className = 'incorrect';
-            startArea.style.display = 'block'; // Show start button again
-            gameArea.style.display = 'none';
-            controlsArea.style.display = 'none';
-            return;
-        }
-    }
+
+    // Hide start area with animation
+    startArea.classList.add('hidden');
 
     if (!isContinuing) {
-        // If starting fresh, reset best streak from potential previous loaded state
-        bestStreak = 0;
-        resetGameVariables();
+        // Full reset if starting fresh
+        const success = resetGameVariables(false); // Reset best streak too
+         if (!success) return; // Stop if reset failed (e.g., data missing)
     } else {
-         // If continuing, we assume loadState has populated bestStreak etc.
-         // Ensure currentCapitalsOrder exists if continuing
-         if (!currentCapitalsOrder || currentCapitalsOrder.length === 0) {
-            console.warn("Continuing game but capital order is missing/invalid. Resetting order.");
-            currentCapitalsOrder = [...allCapitals];
-            shuffleArray(currentCapitalsOrder);
-            // Reset index if order was reset
-            if (currentQuestionIndex >= currentCapitalsOrder.length || currentQuestionIndex < 0) {
-                currentQuestionIndex = 0;
-            }
+         // If continuing, loadState should have populated variables.
+         // Reset variables but keep the loaded best streak.
+        resetGameVariables(true);
+        // Validate loaded state (loadState function handles detailed checks)
+         if (!currentCapitalsOrder || currentCapitalsOrder.length === 0 || currentQuestionIndex < 0 || currentQuestionIndex >= currentCapitalsOrder.length) {
+              console.warn("Invalid state on continue. Performing full reset.");
+              const success = resetGameVariables(false); // Full reset needed
+               if (!success) return; // Stop if reset failed
          }
     }
 
-    updateStatsDisplay();
-
-    startArea.style.display = 'none';
-    gameArea.style.display = 'block';
-    controlsArea.style.display = 'block';
+    updateHUD();
+    updateMenuStats(); // Update stats in menu even if hidden
 
     if (!map) {
        initMap();
     } else {
-       // Optional: reset view slightly if continuing game
-       // map.setView([55, 15], 4);
+       map.setView([55, 15], 4); // Reset view
     }
 
-    // Check if map initialization is complete before proceeding
-    if (!map) {
-        console.error("Map object not available after initMap/check. Aborting.");
-        return;
-    }
-
-    console.log("Calling displayQuestion for index:", currentQuestionIndex);
-    displayQuestion();
+     // Delay slightly after hiding start area before showing first question
+    setTimeout(() => {
+        if (!map) {
+            console.error("Map not ready after init attempt.");
+             showNotification("❌ Fel: Kartan är inte redo.", 'incorrect', 5000);
+            return;
+        }
+        console.log("Calling displayQuestion for index:", currentQuestionIndex);
+        displayQuestion();
+    }, 500); // Matches fade-out duration of start area
 }
 
 function selectDistractors(correctCapital, count) {
     const distractors = [];
-    if (allCapitals.length === 0) {
+    if (!allCapitals || allCapitals.length === 0) {
         console.error("Attempted to select distractors but allCapitals is empty.");
         return [];
     }
-    // Filter out the correct answer AND any potential null/undefined entries
     const possibleDistractors = allCapitals.filter(capital =>
         capital && capital.city && capital.city !== correctCapital.city
     );
-
     shuffleArray(possibleDistractors);
     const numToPick = Math.min(count, possibleDistractors.length);
     for (let i = 0; i < numToPick; i++) {
@@ -170,83 +186,117 @@ function selectDistractors(correctCapital, count) {
     return distractors;
 }
 
-function updateStatsDisplay() {
-    scoreElement.textContent = score;
-    questionNumberElement.textContent = questionNumber;
-    const accuracy = questionNumber > 0 ? ((score / questionNumber) * 100).toFixed(0) : 0;
-    accuracyElement.textContent = `${accuracy}%`;
-    currentStreakElement.textContent = currentStreak;
-    bestStreakElement.textContent = bestStreak; // Display loaded or current best streak
-    difficultyElement.textContent = numChoices;
+function updateHUD() {
+    hudScoreElement.textContent = score;
+    hudStreakElement.textContent = currentStreak;
+     // Optional: Add animation class for score/streak changes
 }
+
+function updateMenuStats() {
+     menuQuestionNumberElement.textContent = questionNumber;
+     const accuracy = questionNumber > 0 ? ((score / questionNumber) * 100).toFixed(0) : 0;
+     menuAccuracyElement.textContent = `${accuracy}%`;
+     menuBestStreakElement.textContent = bestStreak;
+     menuDifficultyElement.textContent = numChoices;
+}
+
+function showNotification(message, type = 'info', duration = 2500) {
+    notificationTextElement.textContent = message;
+    notificationPanel.className = 'notification-visible'; // Base class for visibility
+    notificationPanel.classList.add(type); // 'correct', 'incorrect', or 'info'
+
+    if (type === 'correct') {
+         notificationIconElement.textContent = '✔️';
+    } else if (type === 'incorrect') {
+        notificationIconElement.textContent = '❌';
+    } else {
+        notificationIconElement.textContent = 'ℹ️';
+    }
+
+    // Auto-hide after duration
+    setTimeout(() => {
+        hideNotification();
+    }, duration);
+}
+
+function hideNotification() {
+     notificationPanel.className = 'notification-hidden';
+}
+
+function showPrompt(cityName) {
+    promptCityNameElement.textContent = cityName;
+    promptArea.classList.remove('prompt-hidden');
+}
+
+function hidePrompt() {
+    promptArea.classList.add('prompt-hidden');
+}
+
 
 function displayQuestion() {
     console.log("--- displayQuestion START ---");
-    // Ensure map exists
     if (!map) {
         console.error("displayQuestion called but map is not initialized.");
-        initMap(); // Attempt to re-initialize
-        if (!map) return; // Stop if still fails
+        initMap();
+        if (!map) {
+             showNotification("❌ Fel: Kartan kunde inte laddas.", 'incorrect', 5000);
+             return;
+        }
+         // Retry displaying after short delay if map was just initialized
+         setTimeout(displayQuestion, 200);
+         return;
     }
 
-    // Clear previous markers and reset styles
-    try {
-        markers.forEach(marker => {
-             if (marker) {
-                 // Remove specific marker classes added previously
-                 if (marker._icon) {
-                     L.DomUtil.removeClass(marker._icon, 'correct-marker');
-                     L.DomUtil.removeClass(marker._icon, 'incorrect-marker-clicked');
-                     L.DomUtil.removeClass(marker._icon, 'incorrect-marker-correct');
-                 }
-                 if (map.hasLayer(marker)) {
-                     map.removeLayer(marker);
-                 }
-             }
-        });
-        markers = []; // Clear the array
-        console.log("Old markers removed and styles reset.");
-    } catch (error) {
-        console.error("Error removing markers:", error);
-    }
+    // --- Cleanup from previous question ---
+    hideNotification(); // Ensure previous feedback is hidden
+    markers.forEach(marker => {
+        if (marker && map.hasLayer(marker)) {
+            // Remove specific classes if necessary, though removing layer is usually enough
+            if (marker._icon) {
+                 marker._icon.classList.remove('correct-marker-reveal', 'incorrect-marker-clicked', 'incorrect-marker-correct-reveal');
+            }
+             try {
+                map.removeLayer(marker);
+            } catch (e) { /* Ignore errors if layer already removed */ }
+        }
+    });
+    markers = [];
+    console.log("Old markers removed.");
+    blockClicks = false;
 
-    feedbackTextElement.textContent = '';
-    feedbackTextElement.className = '';
-    blockClicks = false; // Allow clicks
-
-    // --- Validate question progression ---
-    if (!currentCapitalsOrder || currentCapitalsOrder.length === 0 || allCapitals.length === 0) {
+    // --- Validate Data & Progression ---
+     if (!currentCapitalsOrder || currentCapitalsOrder.length === 0 || allCapitals.length === 0) {
         console.warn("Capital order invalid or capitals not loaded. Resetting.");
-        resetGameVariables();
-        if (allCapitals.length === 0) {
-             console.error("Capitals still not loaded. Aborting displayQuestion.");
-             feedbackTextElement.textContent = "Error loading questions. Please reset.";
-             feedbackTextElement.className = 'incorrect';
+        resetGameVariables(true); // Keep best streak if possible
+        if (!allCapitals || allCapitals.length === 0) {
+             showNotification("❌ Fel: Kunde inte ladda frågedata.", 'incorrect', 5000);
              return;
         }
     }
      if (currentQuestionIndex >= currentCapitalsOrder.length || currentQuestionIndex < 0) {
-        console.log(`Index ${currentQuestionIndex} out of bounds (${currentCapitalsOrder.length}). Resetting index and shuffling.`);
-        currentQuestionIndex = 0;
-        shuffleArray(currentCapitalsOrder);
-        // Save state because order/index changed
+        console.log(`Index ${currentQuestionIndex} out of bounds (${currentCapitalsOrder.length}). Wrapping around.`);
+        currentQuestionIndex = 0; // Wrap around to the beginning
+        shuffleArray(currentCapitalsOrder); // Re-shuffle for variety
         saveState();
     }
 
     correctAnswer = currentCapitalsOrder[currentQuestionIndex];
 
-    if (!correctAnswer || typeof correctAnswer.city !== 'string' || typeof correctAnswer.lat !== 'number' || typeof correctAnswer.lon !== 'number' || isNaN(correctAnswer.lat) || isNaN(correctAnswer.lon)) {
-        console.error("Invalid correctAnswer at index", currentQuestionIndex, "- Skipping question:", correctAnswer);
+    // --- Validate Current Question Data ---
+     if (!correctAnswer || typeof correctAnswer.city !== 'string' || typeof correctAnswer.lat !== 'number' || typeof correctAnswer.lon !== 'number' || isNaN(correctAnswer.lat) || isNaN(correctAnswer.lon)) {
+        console.error("Invalid correctAnswer data at index", currentQuestionIndex, "- Skipping:", correctAnswer);
         currentQuestionIndex++;
         saveState();
-        setTimeout(displayQuestion, 50);
+        setTimeout(displayQuestion, 50); // Try next immediately
         return;
     }
 
-    console.log(`Question ${questionNumber + 1}: ${correctAnswer.city} (Index: ${currentQuestionIndex})`);
-    cityNameElement.textContent = correctAnswer.city;
-    updateStatsDisplay(); // Show stats for the upcoming question
+    console.log(`Question ${questionNumber + 1}: Ask for ${correctAnswer.city} (Index: ${currentQuestionIndex})`);
 
+    // --- Show Prompt ---
+    showPrompt(correctAnswer.city);
+
+    // --- Select Choices & Create Markers ---
     const actualNumChoices = Math.min(numChoices, allCapitals.length);
     const numDistractors = actualNumChoices - 1;
     const distractors = selectDistractors(correctAnswer, numDistractors);
@@ -255,44 +305,37 @@ function displayQuestion() {
     console.log("Choices:", choicesForThisRound.map(c => c.city));
 
     const currentChoiceLatLngs = [];
-
-    // --- Add new markers ---
     console.log("Adding new markers...");
     choicesForThisRound.forEach(capital => {
         try {
             if (typeof capital.lat !== 'number' || typeof capital.lon !== 'number' || isNaN(capital.lat) || isNaN(capital.lon)) {
-                console.error("Invalid coordinates for city:", capital.city, capital);
                 throw new Error(`Invalid coordinates for ${capital.city}`);
             }
             const marker = L.marker([capital.lat, capital.lon], { capitalData: capital });
             marker.on('click', handleMarkerClick);
             marker.addTo(map);
-            markers.push(marker); // Add to the marker array for this question
+            markers.push(marker);
             currentChoiceLatLngs.push([capital.lat, capital.lon]);
         } catch (error) {
             console.error("Error creating marker for:", capital ? capital.city : 'undefined capital', error);
         }
     });
-    console.log("New markers added. Total on map:", markers.length);
-
-    // Adjust z-index of markers based on latitude
+    console.log("New markers added. Total:", markers.length);
     adjustMarkerZIndex();
 
-    // --- Zoom map to fit all current markers ---
-    if (currentChoiceLatLngs.length > 1 && map) {
+    // --- Zoom Map ---
+     if (currentChoiceLatLngs.length > 1 && map) {
         try {
             const bounds = L.latLngBounds(currentChoiceLatLngs);
-            map.flyToBounds(bounds, { padding: [40, 40], duration: 0.7, easeLinearity: 0.5, maxZoom: 9 });
+            map.flyToBounds(bounds, { padding: [50, 50], duration: 0.7, easeLinearity: 0.5, maxZoom: 9 });
             console.log("Map zoomed to fit choices.");
         } catch(e) {
             console.error("Error fitting map bounds:", e);
             map.setView([55, 15], 4); // Fallback
         }
     } else if (currentChoiceLatLngs.length === 1 && map) {
-        // Handle case with only one choice
-        map.flyTo(currentChoiceLatLngs[0], 6, { duration: 0.7 }); // Zoom to a reasonable level
+        map.flyTo(currentChoiceLatLngs[0], 6, { duration: 0.7 });
     } else if (map) {
-        // Fallback if no markers could be added
         map.setView([55, 15], 4);
     }
 
@@ -315,8 +358,6 @@ function adjustDifficulty() {
     }
     if (difficultyChanged) {
         console.log("Difficulty adjusted to:", numChoices);
-        // Optionally update display immediately if needed, though it happens before next question anyway
-        // difficultyElement.textContent = numChoices;
     }
 }
 
@@ -331,151 +372,123 @@ function handleMarkerClick(event) {
         return;
     }
 
-    blockClicks = true; // Block subsequent clicks immediately
+    blockClicks = true; // Block clicks immediately
     console.log("Clicks blocked.");
+    hidePrompt(); // Hide the "Hitta:" prompt
 
     const clickedMarker = event.target;
     const clickedCapital = clickedMarker.options.capitalData;
 
-    // Ensure correctAnswer is valid for comparison
     if (!correctAnswer || !correctAnswer.city) {
-        console.error("handleMarkerClick called but correctAnswer is invalid!");
-        // Attempt recovery: Go to next question after a short delay
-        blockClicks = false; // Allow clicks again maybe? Or just proceed to next?
-         setTimeout(() => {
-            currentQuestionIndex++;
-            displayQuestion();
-        }, 1000);
+        console.error("handleMarkerClick: correctAnswer is invalid!");
+        showNotification("❌ Ett internt fel uppstod.", 'incorrect', 3000);
+        blockClicks = false;
+         // Attempt recovery - maybe just wait longer? Or reset? For now, just unblock.
         return;
     }
 
     const isCorrect = clickedCapital.city === correctAnswer.city;
-    questionNumber++; // Increment question number regardless of outcome
+    questionNumber++;
     console.log(`Answered question ${questionNumber}. Correct: ${isCorrect}`);
 
-    // Find the marker corresponding to the correct answer BEFORE removing others
     const correctMapMarker = markers.find(m => m && m.options.capitalData.city === correctAnswer.city);
-     if (!correctMapMarker) {
-         console.warn("Could not find the marker instance for the correct answer:", correctAnswer.city);
-         // This shouldn't happen if displayQuestion worked, but good to log.
-     }
 
-    // --- Feedback and Coloring ---
+    // --- Feedback Logic ---
     if (isCorrect) {
         score++;
         currentStreak++;
         if (currentStreak > bestStreak) {
             bestStreak = currentStreak;
         }
-        feedbackTextElement.textContent = `Rätt! Det är ${correctAnswer.city}, ${correctAnswer.country}.`;
-        feedbackTextElement.className = 'correct';
-        if (clickedMarker._icon) L.DomUtil.addClass(clickedMarker._icon, 'correct-marker');
-        console.log("Correct answer clicked.");
-
-    } else {
-        currentStreak = 0;
-        feedbackTextElement.textContent = `Fel. Det där är ${clickedCapital.city}. Rätt svar var ${correctAnswer.city}.`;
-        feedbackTextElement.className = 'incorrect';
-        // Color the clicked (wrong) marker red
-        if (clickedMarker._icon) L.DomUtil.addClass(clickedMarker._icon, 'incorrect-marker-clicked');
-        // Color the actual correct marker green
-        if (correctMapMarker && correctMapMarker._icon) {
-            L.DomUtil.addClass(correctMapMarker._icon, 'incorrect-marker-correct');
+        showNotification(`Rätt! Det är ${correctAnswer.city}, ${correctAnswer.country}.`, 'correct', 2500);
+        if (clickedMarker._icon) {
+            clickedMarker._icon.classList.add('correct-marker-reveal');
         }
-        console.log("Incorrect answer clicked.");
-    }
+        console.log("Correct answer visual feedback.");
 
-    // --- Remove Distractor Markers ---
-    const markersToKeep = [];
-    if (isCorrect) {
-        if(clickedMarker) markersToKeep.push(clickedMarker);
-    } else {
-        if(clickedMarker) markersToKeep.push(clickedMarker);
-        // Ensure correctMapMarker exists and is different from clickedMarker before adding
-        if(correctMapMarker && correctMapMarker !== clickedMarker) {
-            markersToKeep.push(correctMapMarker);
-        }
-    }
-
-    markers.forEach(marker => {
-        // If this marker is NOT in the list of markers to keep...
-        if (marker && !markersToKeep.includes(marker)) {
-            if (map.hasLayer(marker)) {
-                try {
-                    map.removeLayer(marker);
-                    // console.log("Removed distractor marker for:", marker.options.capitalData.city);
-                } catch (e) {
-                    console.warn("Error removing a distractor marker:", e);
-                }
+        // Remove incorrect markers
+        markers.forEach(marker => {
+            if (marker !== clickedMarker && map.hasLayer(marker)) {
+                 try { map.removeLayer(marker); } catch(e){}
             }
-        }
-    });
-    // Update the global 'markers' array to only contain the ones left on the map
-    markers = markersToKeep;
-    console.log("Distractor markers removed. Remaining markers:", markers.length);
+        });
+        markers = [clickedMarker]; // Only keep the correct one
 
-
-    // --- Zooming Logic ---
-    if (isCorrect) {
+        // Zoom to correct answer
         if (clickedMarker) {
-             // Zoom fairly close to the single correct marker
-             map.flyTo(clickedMarker.getLatLng(), 7, { // Zoom level 7
-                 duration: 0.8,
-                 easeLinearity: 0.4
-             });
-             console.log("Zoomed to correct answer.");
+            map.flyTo(clickedMarker.getLatLng(), 7, { duration: 0.8, easeLinearity: 0.4 });
         }
-    } else {
-        // Zoom to fit both clicked (wrong) and correct markers
-        if (markersToKeep.length === 2) { // Should contain clicked and correct
+
+    } else { // Incorrect Answer
+        currentStreak = 0;
+        showNotification(`Fel. Det där var ${clickedCapital.city}. Rätt svar: ${correctAnswer.city}.`, 'incorrect', 3500); // Longer duration for incorrect
+
+        // Style clicked (wrong) marker
+        if (clickedMarker._icon) {
+            clickedMarker._icon.classList.add('incorrect-marker-clicked');
+        }
+        // Style correct marker
+        if (correctMapMarker && correctMapMarker._icon) {
+            correctMapMarker._icon.classList.add('incorrect-marker-correct-reveal');
+        } else if (correctMapMarker && !correctMapMarker._icon) {
+             // If icon isn't rendered yet, try adding later? Or just log.
+             console.warn("Correct marker found but its icon element doesn't exist yet.");
+        } else if (!correctMapMarker) {
+             console.warn("Correct marker instance not found for styling.");
+        }
+        console.log("Incorrect answer visual feedback.");
+
+        // Remove other distractors (neither clicked nor correct)
+         const markersToKeep = [clickedMarker, correctMapMarker].filter(Boolean); // Filter out null/undefined
+         markers.forEach(marker => {
+             if (!markersToKeep.includes(marker) && map.hasLayer(marker)) {
+                 try { map.removeLayer(marker); } catch(e){}
+             }
+         });
+         markers = markersToKeep; // Keep clicked and correct
+
+
+        // Zoom to show both
+        if (markers.length >= 2) {
              try {
-                const bounds = L.latLngBounds(markersToKeep.map(m => m.getLatLng()));
-                map.flyToBounds(bounds, {
-                    padding: [60, 60], // Add padding around the markers
-                    duration: 1.0,
-                    easeLinearity: 0.4,
-                    maxZoom: 8 // Don't zoom in excessively close
-                });
-                 console.log("Zoomed to show incorrect and correct answers.");
+                const bounds = L.latLngBounds(markers.map(m => m.getLatLng()));
+                map.flyToBounds(bounds, { padding: [70, 70], duration: 1.0, easeLinearity: 0.4, maxZoom: 8 });
              } catch (e) {
                  console.error("Error zooming to incorrect/correct bounds:", e);
-                 // Fallback: Center between them? Or zoom out slightly?
-                 if(clickedMarker) map.flyTo(clickedMarker.getLatLng(), 5, { duration: 0.8 }); // Zoom out a bit near the wrong one
+                 if(clickedMarker) map.flyTo(clickedMarker.getLatLng(), 5, { duration: 0.8 });
              }
-        } else if (markersToKeep.length === 1) { // Only the clicked one remained (maybe correct one failed?)
-            map.flyTo(markersToKeep[0].getLatLng(), 6, { duration: 0.8 }); // Zoom to the single remaining (wrong) marker
-             console.log("Zoomed to the single incorrect marker (correct marker missing?).");
+        } else if (clickedMarker) { // Only clicked marker remained
+            map.flyTo(clickedMarker.getLatLng(), 6, { duration: 0.8 });
         }
     }
 
-    // Adjust z-index of markers based on latitude
-    adjustMarkerZIndex();
+    adjustMarkerZIndex(); // Re-adjust Z-index if needed after styling/removals
 
-    // --- Update Stats, Difficulty, Save State ---
+    // --- Update State & Schedule Next ---
     performanceHistory.push(isCorrect ? 1 : 0);
     if (performanceHistory.length > historyWindowSize) {
         performanceHistory.shift();
     }
     adjustDifficulty();
-    updateStatsDisplay(); // Update display with new score/streak/etc.
-    saveState(); // Save state after every answer
+    updateHUD(); // Update score/streak in HUD
+    updateMenuStats(); // Update stats in menu data
+    saveState();
 
-    // --- Schedule Next Question ---
-    console.log("Scheduling next question...");
-    // Increased delay to allow user to see the result and zoom animation
-    const delay = 2500;
+    // Schedule next question after feedback duration
+    const nextQuestionDelay = isCorrect ? 2700 : 3700; // Slightly longer than notification
+    console.log(`Scheduling next question in ${nextQuestionDelay}ms`);
     setTimeout(() => {
-        console.log("setTimeout triggered. Current index before increment:", currentQuestionIndex);
+        console.log("setTimeout triggered for next question. Index before increment:", currentQuestionIndex);
         currentQuestionIndex++;
-        console.log("Current index after increment:", currentQuestionIndex);
-        displayQuestion(); // Display the *next* question
-    }, delay);
+        console.log("Index after increment:", currentQuestionIndex);
+        displayQuestion();
+    }, nextQuestionDelay);
 
     console.log("--- handleMarkerClick END ---");
 }
 
 
-// --- Local Storage Funktioner ---
+// --- Local Storage Functions ---
 function saveState() {
     const state = {
         score,
@@ -485,15 +498,14 @@ function saveState() {
         bestStreak,
         numChoices,
         performanceHistory,
-        // Ensure currentCapitalsOrder exists before saving
         currentCapitalsOrder: currentCapitalsOrder && currentCapitalsOrder.length > 0 ? currentCapitalsOrder : []
     };
     try {
         localStorage.setItem(STATE_KEY, JSON.stringify(state));
-        // console.log("Game state saved."); // Less verbose logging
+        // console.log("Game state saved."); // Reduce console noise
     } catch (e) {
         console.error("Could not save game state:", e);
-        // Consider notifying user if storage is full/fails
+        showNotification("⚠️ Kunde inte spara spelets status.", 'info', 3000);
     }
 }
 
@@ -510,7 +522,26 @@ function loadState() {
              if (!Array.isArray(state.performanceHistory) || !Array.isArray(state.currentCapitalsOrder)) {
                  throw new Error("Invalid array types in state.");
              }
+             // Ensure capitals data is loaded FIRST
+             if (!allCapitals || allCapitals.length === 0) {
+                  if (typeof europeanCapitals !== 'undefined') {
+                     allCapitals = [...europeanCapitals];
+                  } else {
+                      throw new Error("Cannot load state without europeanCapitals data.");
+                  }
+             }
+             // Validate loaded order
+             const isValidOrder = state.currentCapitalsOrder.length > 0 && state.currentCapitalsOrder.every(capital =>
+                 capital && typeof capital.city === 'string' && typeof capital.lat === 'number' && typeof capital.lon === 'number'
+             );
 
+             if (!isValidOrder) {
+                  console.warn("Loaded currentCapitalsOrder is invalid or empty. State load failed.");
+                  localStorage.removeItem(STATE_KEY); // Clear invalid state
+                  return false;
+             }
+
+            // Assign loaded values
             score = state.score;
             questionNumber = state.questionNumber;
             currentQuestionIndex = state.currentQuestionIndex;
@@ -520,36 +551,12 @@ function loadState() {
             performanceHistory = state.performanceHistory;
             currentCapitalsOrder = state.currentCapitalsOrder;
 
-            // Ensure capitals data is loaded if we are restoring state
-            if (allCapitals.length === 0) {
-                 if (typeof europeanCapitals !== 'undefined') {
-                    allCapitals = [...europeanCapitals];
-                 } else {
-                     throw new Error("Cannot load state without europeanCapitals data.");
-                 }
-            }
 
-            // **Validate loaded order against current data**
-            const isValidOrder = currentCapitalsOrder.length > 0 && currentCapitalsOrder.every(capital =>
-                capital && typeof capital.city === 'string' && typeof capital.lat === 'number' && typeof capital.lon === 'number'
-                // Optional: Check if cities in the saved order still exist in the main 'allCapitals' list
-                // && allCapitals.some(c => c.city === capital.city)
-            );
-
-            if (!isValidOrder) {
-                 console.warn("Loaded currentCapitalsOrder is invalid or empty. Resetting order.");
-                 currentCapitalsOrder = [...allCapitals];
-                 shuffleArray(currentCapitalsOrder);
-                 // If order is reset, should we reset progress? Maybe just the index.
-                 currentQuestionIndex = 0;
-            }
-
-            // Validate index bounds after loading order
+            // Validate index bounds AFTER loading order
              if (currentQuestionIndex < 0 || currentQuestionIndex >= currentCapitalsOrder.length) {
                 console.warn(`Loaded index ${state.currentQuestionIndex} is out of bounds for loaded order (${currentCapitalsOrder.length}). Resetting index.`);
                 currentQuestionIndex = 0;
              }
-
 
             console.log("Game state loaded successfully.");
             return true; // Signal that state was loaded
@@ -563,87 +570,125 @@ function loadState() {
 
 function resetGame() {
     console.log("Resetting game...");
+     // Confirmation Dialog
+     if (!confirm("Är du säker på att du vill nollställa spelet? All statistik försvinner.")) {
+        console.log("Reset cancelled by user.");
+        return;
+     }
+
     localStorage.removeItem(STATE_KEY); // Clear saved state
-    if (map) {
-        // Remove markers before removing map
+    hideMenu(); // Hide menu if open
+    hidePrompt(); // Hide any active prompt
+    hideNotification(); // Hide any active notification
+
+     if (map) {
          markers.forEach(marker => {
              if (marker && map.hasLayer(marker)) {
-                 map.removeLayer(marker);
+                 try { map.removeLayer(marker); } catch(e){}
              }
          });
          markers = [];
-        map.remove();
-        map = null;
+         // Don't remove the map instance, just reset view and clear layers
+         map.setView([55, 15], 4);
     }
-    // No need to reload allCapitals if already loaded
-     if (allCapitals.length === 0) {
-        if (typeof europeanCapitals !== 'undefined') {
-           allCapitals = [...europeanCapitals];
-        } else {
-           console.error("Cannot reset game - europeanCapitals data missing.");
-           // Show error state?
-           return;
-        }
-    }
-    // Reset variables, including bestStreak for a full reset
-    bestStreak = 0;
-    resetGameVariables();
 
-    // Immediately start a new game after resetting
-    console.log("Starting new game after reset.");
-    startGame(false);
-    // Ensure UI reflects the reset state
-    updateStatsDisplay();
-    startArea.style.display = 'none'; // Hide start button
-    gameArea.style.display = 'block'; // Show game
-    controlsArea.style.display = 'block'; // Show controls
+    const success = resetGameVariables(false); // Full reset including best streak
+    if (success) {
+        console.log("Starting new game after reset.");
+         // Show start area briefly? Or start directly? Start directly.
+         startArea.classList.add('hidden'); // Ensure start area is hidden
+         setTimeout(() => {
+            if (!map) initMap(); // Re-init map if it failed previously
+            displayQuestion(); // Display the first question of the new game
+        }, 100); // Short delay
+        updateHUD();
+        updateMenuStats();
+    } else {
+        console.error("Reset failed, likely due to missing capital data.");
+        // Show start area again if reset fails?
+         startArea.classList.remove('hidden');
+    }
+}
+
+function toggleMenu() {
+     if (menuOverlay.classList.contains('menu-hidden')) {
+         showMenu();
+     } else {
+         hideMenu();
+     }
+}
+
+function showMenu() {
+    updateMenuStats(); // Ensure stats are current when menu opens
+    menuOverlay.classList.remove('menu-hidden');
+    // Optional: Pause game timer/activity if applicable
+}
+
+function hideMenu() {
+    menuOverlay.classList.add('menu-hidden');
+    // Optional: Resume game timer/activity
+}
+
+function adjustMarkerZIndex() {
+    // Sort markers by latitude (North to South)
+    const sortedMarkers = [...markers].sort((a, b) => b.getLatLng().lat - a.getLatLng().lat);
+    // Assign z-index offset based on sorted order
+    sortedMarkers.forEach((marker, index) => {
+        if (marker._icon) {
+            // Assign a base z-index + an offset. Higher numbers are further south (appear on top)
+            // Leaflet's default marker z-index is based on latitude, this reinforces it or overrides if needed.
+             // Let Leaflet handle zIndex based on lat by default, only override if needed.
+             // marker.setZIndexOffset(index * 10); // Example: Explicit offset if default isn't enough
+        }
+    });
+     // Alternatively, rely on Leaflet's default behavior which should handle most cases.
+     // If overlaps are consistently wrong, use setZIndexOffset.
 }
 
 
 // --- Event Listeners ---
 startButton.addEventListener('click', () => startGame(false));
+continueButton.addEventListener('click', () => startGame(true));
 resetButton.addEventListener('click', resetGame);
+menuButton.addEventListener('click', toggleMenu);
+closeMenuButton.addEventListener('click', hideMenu);
+// Close menu if clicking outside the content area
+menuOverlay.addEventListener('click', (event) => {
+    if (event.target === menuOverlay) { // Check if the click is on the overlay itself
+        hideMenu();
+    }
+});
+
 
 // --- Initialisering vid sidladdning ---
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM fully loaded and parsed.");
-    // Attempt to preload capitals data immediately
-    if (typeof europeanCapitals !== 'undefined') {
-       allCapitals = [...europeanCapitals];
-       console.log("Preloaded capitals.");
-    } else {
-       console.error("CRITICAL: europeanCapitals data not found on page load!");
-       // Display an error message to the user on the page?
-       feedbackTextElement.textContent = "ERROR: Could not load city data. Please refresh or check the console.";
-       feedbackTextElement.className = 'incorrect';
-       startArea.style.display = 'none'; // Hide start button if data is missing
+
+    if (!allCapitals || allCapitals.length === 0) {
+       console.error("CRITICAL: europeanCapitals data not found after DOM load!");
+       startArea.innerHTML = `<p style="color:red;">Fel: Kunde inte ladda stadsdata. Försök ladda om sidan.</p>`;
+        startArea.classList.remove('hidden'); // Make sure error is visible
        return; // Stop initialization
     }
 
+    initMap(); // Initialize map on load to show background
 
     if (loadState()) {
-        console.log("Saved state found, starting continued game.");
-        // Start the game in 'continue' mode, map will be initialized in startGame
-        startGame(true);
+        console.log("Saved state found.");
+        updateHUD(); // Show loaded stats immediately in HUD
+        updateMenuStats(); // Update menu stats
+        // Show continue button, hide start button
+        startButton.style.display = 'none';
+        continueButton.style.display = 'inline-block';
+        startArea.classList.remove('hidden'); // Show start area with continue option
     } else {
-        console.log("No valid saved state found, showing start area.");
-        startArea.style.display = 'block';
-        gameArea.style.display = 'none';
-        // Show controls (like reset) even before game starts
-        controlsArea.style.display = 'block';
-        // Optional: Initialize map here for background, or wait for startGame
-        // initMap(); // If you want map visible behind start button
-        // Update display to show initial zeroed/default stats
-        updateStatsDisplay();
+        console.log("No valid saved state found. Ready for new game.");
+        // Show start button, hide continue button
+        startButton.style.display = 'inline-block';
+        continueButton.style.display = 'none';
+        startArea.classList.remove('hidden'); // Show start area
+        // Update displays to show initial zeroed/default stats
+        updateHUD();
+        updateMenuStats();
     }
 });
-
-function adjustMarkerZIndex() {
-    markers.forEach(marker => {
-        const lat = marker.getLatLng().lat;
-        const zIndex = Math.round((90 - lat) * 1000); // Higher latitude (north) gets lower z-index
-        if (marker._icon) {
-            marker._icon.style.zIndex = zIndex;
-        }
-    });
-}

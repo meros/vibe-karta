@@ -7,7 +7,6 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-    
       gtag('config', 'G-KLCP8RSV3Q');
     </script>
     <meta charset="UTF-8">
@@ -17,47 +16,68 @@
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossorigin=""/>
     <link rel="stylesheet" href="style.css">
+    <!-- Optional: Add an icon library like Font Awesome for menu/icons -->
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"> -->
 </head>
 <body>
 
     <div id="app-container">
-        <h1>Europakollen!</h1>
-
-        <!-- Knapp för att nollställa spelet -->
-        <div id="controls-area">
-             <button id="reset-button">Nollställ Spelet</button>
-        </div>
-
-        <!-- Startområde (visas bara om inget sparat spel finns) -->
-        <div id="start-area">
-            <p>Klicka för att starta en ny omgång!</p>
-            <button id="start-button">Starta Spelet!</button>
-        </div>
-
-        <!-- Spelområde (visas om spelet är igång eller laddat) -->
-        <div id="game-area" style="display: none;">
-            <div id="question-area">
-                Hitta huvudstaden: <span id="city-name">?</span>
+        <!-- Top HUD -->
+        <div id="top-hud">
+            <div class="hud-left">
+                <span class="hud-item">Poäng: <strong id="hud-score">0</strong></span>
+                <span class="hud-item">Streak: <strong id="hud-streak">0</strong> 🔥</span>
             </div>
+            <div class="hud-center">
+                 <h1 id="game-title">Europakollen!</h1>
+            </div>
+            <div class="hud-right">
+                <button id="menu-button" aria-label="Öppna meny">☰</button> <!-- Simple text menu icon -->
+            </div>
+        </div>
 
-            <!-- Karta -->
+        <!-- Main Content Area (Map + Prompt/Feedback overlays) -->
+        <div id="main-content">
+             <!-- Karta -->
             <div id="map"></div>
 
-            <!-- Feedback -->
-            <div id="feedback-area">
-                <p id="feedback-text"></p>
+             <!-- Dynamic Prompt Area -->
+            <div id="prompt-area" class="prompt-hidden"> <!-- Start hidden -->
+                Hitta: <span id="prompt-city-name">?</span>
             </div>
 
-            <!-- Dedikerad statistik-bar -->
-            <div id="stats-bar">
-                <span class="stat-item">Poäng: <strong id="score">0</strong></span>
-                <span class="stat-item">Fråga: <strong id="question-number">0</strong></span>
-                <span class="stat-item">Träffsäkerhet: <strong id="accuracy">-%</strong></span>
-                <span class="stat-item">Streak: <strong id="current-streak">0</strong></span>
-                <span class="stat-item">Bästa Streak: <strong id="best-streak">0</strong></span>
-                <span class="stat-item">Val: <strong id="difficulty">0</strong></span>
+            <!-- Notification Panel (for Correct/Incorrect feedback) -->
+            <div id="notification-panel" class="notification-hidden"> <!-- Start hidden -->
+                <span id="notification-icon"></span>
+                <span id="notification-text">Feedback text here</span>
+            </div>
+
+             <!-- Start Area (Overlays map initially) -->
+            <div id="start-area">
+                 <h2>Välkommen!</h2>
+                <p>Klicka på kartan för att gissa huvudstadens läge.</p>
+                <button id="start-button" class="button-primary">Starta Nytt Spel!</button>
+                <button id="continue-button" class="button-secondary" style="display: none;">Fortsätt Spel</button>
+            </div>
+
+        </div>
+
+         <!-- Menu Overlay (Hidden initially) -->
+        <div id="menu-overlay" class="menu-hidden">
+            <div id="menu-content">
+                <h2>Meny</h2>
+                <div id="menu-stats">
+                     <h3>Statistik</h3>
+                     <p>Fråga: <strong id="menu-question-number">0</strong></p>
+                     <p>Träffsäkerhet: <strong id="menu-accuracy">-%</strong></p>
+                     <p>Bästa Streak: <strong id="menu-best-streak">0</strong></p>
+                     <p>Svårighet (Val): <strong id="menu-difficulty">0</strong></p>
+                </div>
+                <button id="reset-button" class="button-danger">Nollställ Spelet</button>
+                <button id="close-menu-button" class="button-secondary">Stäng Meny</button>
             </div>
         </div>
+
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"

@@ -1,166 +1,465 @@
+/* --- Base & Typography --- */
+:root {
+    --primary-color: #3498db;
+    --primary-color-dark: #2980b9;
+    /* Brighter Green for Correct */
+    --success-color-fg: #27ae60; /* Use this for the pin color */
+    --success-color: #2ecc71;
+    --success-bg: #eafaf1;
+    --success-border: #a6e9c0;
+     /* Brighter Red for Incorrect Reveal */
+    --error-color-fg: #e74c3c; /* Use this for the pin color */
+    --error-color: #a94442; /* Text color for notification */
+    --error-bg: #fdeded;
+    --error-border: #f8d7da;
+    /* Dim color for incorrect clicked */
+    --dimmed-filter: grayscale(80%) brightness(0.9) sepia(20%);
+
+    --light-bg: #f8f9fa;
+    --medium-bg: #eef1f5;
+    --dark-text: #2c3e50;
+    --medium-text: #555;
+    --light-text: #ffffff;
+    --border-color: #dee2e6;
+    --shadow-color: rgba(0, 0, 0, 0.08);
+    --map-bg: #f7f9fc;
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-    background-color: #eef1f5; /* Ljusgråblå bakgrund */
+    font-family: var(--font-family);
+    background-color: var(--medium-bg);
     display: flex;
     justify-content: center;
-    align-items: flex-start; /* Justera uppåt för längre innehåll */
+    align-items: flex-start;
     min-height: 100vh;
     margin: 0;
-    padding-top: 20px; /* Lite utrymme upptill */
-    color: #333;
+    padding: 0; /* Remove padding, handled by container */
+    color: var(--dark-text);
+    overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
 #app-container {
-    background-color: #ffffff;
-    padding: 25px 40px;
-    border-radius: 12px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    background-color: var(--light-text);
+    border-radius: 16px;
+    box-shadow: 0 8px 30px var(--shadow-color);
+    /* Max width slightly larger, more responsive */
+    max-width: 900px;
+    width: 95%;
+    margin: 20px auto; /* Center container with margin */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Clip shadows if needed */
+}
+
+h1, h2, h3 {
+    color: var(--dark-text);
     text-align: center;
-    max-width: 800px;
-    width: 90%;
+    margin-top: 0;
 }
 
-h1 {
-    color: #2c3e50; /* Mörkare, mer neutral blå */
-    margin-bottom: 15px;
+h1#game-title {
+    font-size: 1.4em;
     font-weight: 600;
+    margin: 0; /* Reset margin */
+    line-height: 1.2; /* Adjust line height */
 }
 
-#controls-area {
-    margin-bottom: 20px;
-}
-
-#start-area p {
-    margin-bottom: 10px;
-    color: #555;
-}
-
+/* --- Buttons --- */
 button {
-    color: white;
+    font-family: var(--font-family);
     border: none;
     padding: 10px 20px;
     font-size: 1em;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.1s ease;
+    transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
     margin: 5px;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 button:hover {
     opacity: 0.9;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.07);
 }
 button:active {
-     transform: scale(0.98);
+     transform: scale(0.97);
+     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
-#start-button {
-    background-color: #3498db; /* Klarblå */
+.button-primary {
+    background-color: var(--primary-color);
+    color: var(--light-text);
 }
-#start-button:hover {
-    background-color: #2980b9;
+.button-primary:hover {
+    background-color: var(--primary-color-dark);
 }
 
-#reset-button {
-    background-color: #e74c3c; /* Röd */
-    font-size: 0.9em;
-    padding: 8px 15px;
+.button-secondary {
+    background-color: #f1f3f5; /* Lighter grey */
+    color: var(--dark-text);
+    border: 1px solid var(--border-color);
 }
-#reset-button:hover {
+.button-secondary:hover {
+    background-color: #e9ecef;
+}
+
+.button-danger {
+    background-color: var(--error-color-fg); /* Match red pin */
+    color: var(--light-text);
+}
+.button-danger:hover {
     background-color: #c0392b;
 }
 
-
-#game-area {
-    /* Visas/döljs av JS */
+#menu-button {
+    background: none;
+    border: none;
+    font-size: 1.8em; /* Larger icon */
+    color: var(--dark-text);
+    cursor: pointer;
+    padding: 5px 10px;
+    line-height: 1;
+    box-shadow: none;
+}
+#menu-button:hover {
+    background-color: rgba(0,0,0,0.05);
+    border-radius: 50%;
+}
+#menu-button:active {
+    transform: scale(0.95);
 }
 
-#question-area {
-    font-size: 1.3em;
-    font-weight: 500;
-    margin-bottom: 15px;
-    color: #2c3e50;
-}
-
-#city-name {
-    color: #3498db; /* Matchar startknappen */
-    font-weight: 600;
-}
-
-#map {
-    height: 400px; /* Något lägre för att ge plats åt stats */
-    width: 100%;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    background-color: #f7f9fc;
-}
-
-/* Markörstyling (oförändrad) */
-.correct-marker { filter: hue-rotate(240deg) saturate(5); }
-.incorrect-marker-clicked { filter: grayscale(100%) opacity(0.6); }
-.incorrect-marker-correct { filter: hue-rotate(0deg) saturate(5); }
-
-#feedback-area {
-    min-height: 40px; /* Lite mer utrymme */
-    margin-top: 10px;
-    margin-bottom: 20px; /* Mer utrymme innan stats */
-}
-
-#feedback-text {
-    padding: 8px 15px;
-    border-radius: 6px;
-    display: inline-block; /* Gör att bakgrunden bara täcker texten */
-    font-weight: 500;
-    transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-#feedback-text.correct {
-    background-color: #dff0d8; /* Ljusgrön bakgrund */
-    color: #3c763d; /* Mörkgrön text */
-    border: 1px solid #c3e6cb;
-}
-#feedback-text.correct::before { /* Lägg till ikon */
-    content: '✔️ ';
-}
-
-#feedback-text.incorrect {
-    background-color: #f2dede; /* Ljusröd bakgrund */
-    color: #a94442; /* Mörkröd text */
-    border: 1px solid #ebccd1;
-}
-#feedback-text.incorrect::before { /* Lägg till ikon */
-    content: '❌ ';
-}
-
-
-/* Styling för den nya statistik-baren */
-#stats-bar {
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 12px 15px;
-    margin-top: 15px;
+/* --- Top HUD --- */
+#top-hud {
     display: flex;
-    flex-wrap: wrap; /* Radbryt på mindre skärmar */
-    justify-content: space-around; /* Fördela utrymmet */
+    justify-content: space-between;
     align-items: center;
-    gap: 10px; /* Mellanrum mellan stat-items */
+    padding: 15px 25px;
+    background-color: var(--light-text);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky; /* Keep HUD visible? Or relative? */
+    top: 0;
+    z-index: 1001; /* Above map but below menu overlay */
 }
 
-.stat-item {
-    color: #495057;
-    font-size: 0.95em;
-    flex: 1; /* Försök ta lika mycket plats */
-    min-width: 100px; /* Undvik att de blir för smala */
+.hud-left, .hud-right {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+.hud-right {
+    justify-content: flex-end;
+}
+.hud-center {
+    flex: 2; /* Give title more space */
     text-align: center;
 }
 
-.stat-item strong {
-    color: #2c3e50; /* Mörkare färg för siffrorna */
+.hud-item {
+    margin-right: 15px;
+    font-size: 0.95em;
+    color: var(--medium-text);
+}
+.hud-item strong {
+    color: var(--dark-text);
     font-weight: 600;
     margin-left: 4px;
 }
+.hud-item:last-child {
+    margin-right: 0;
+}
 
-/* P922f */
-.leaflet-marker-icon {
+/* --- Main Content Area --- */
+#main-content {
+    position: relative; /* Needed for positioning overlays */
+    width: 100%;
+    /* Map height relative to viewport height, adjust as needed */
+    height: calc(100vh - 140px); /* Approximate height minus HUD and some padding */
+    min-height: 450px; /* Ensure minimum height */
+    background-color: var(--map-bg); /* Background behind map */
+}
+
+#map {
+    height: 100%;
+    width: 100%;
+    border-radius: 0 0 16px 16px; /* Rounded bottom corners match container */
+    z-index: 1; /* Map below overlays */
+}
+
+/* --- Start Area Overlay --- */
+#start-area {
     position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent white */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 50; /* Above map, below prompt/notification */
+    padding: 20px;
+    box-sizing: border-box;
+    text-align: center;
+    border-radius: 0 0 16px 16px;
+    /* Fade in/out */
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.5s ease, visibility 0s linear 0s;
+}
+#start-area.hidden {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease, visibility 0s linear 0.5s;
+}
+#start-area h2 {
+     margin-bottom: 10px;
+     font-size: 1.8em;
+     font-weight: 600;
+}
+#start-area p {
+    margin-bottom: 20px;
+    color: var(--medium-text);
+    font-size: 1.1em;
+}
+
+/* --- Dynamic Prompt Area --- */
+#prompt-area {
+    position: absolute;
+    bottom: 70px; /* Position above notification panel */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(44, 62, 80, 0.85); /* Semi-transparent dark blue */
+    color: var(--light-text);
+    padding: 12px 25px;
+    border-radius: 25px; /* Pill shape */
+    font-size: 1.2em;
+    font-weight: 500;
+    z-index: 40; /* Above map */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    white-space: nowrap; /* Prevent wrapping */
+    transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+}
+#prompt-area.prompt-hidden {
+    transform: translate(-50%, 100px); /* Start below */
+    opacity: 0;
+}
+#prompt-city-name {
+    font-weight: 700;
+    color: var(--primary-color); /* Highlight city */
+}
+
+/* --- Notification Panel --- */
+#notification-panel {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 85%;
+    max-width: 500px;
+    padding: 15px 20px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    z-index: 45; /* Above map, below prompt if they overlap */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease; /* Bounce effect */
+}
+#notification-panel.notification-hidden {
+    transform: translate(-50%, 100px); /* Start below screen */
+    opacity: 0;
+}
+#notification-icon {
+    margin-right: 10px;
+    font-size: 1.3em;
+}
+#notification-panel.correct {
+    background-color: var(--success-bg);
+    color: var(--success-color-fg); /* Match green pin */
+    border: 1px solid var(--success-border);
+}
+#notification-panel.incorrect {
+    background-color: var(--error-bg);
+    color: var(--error-color); /* Keep text readable */
+    border: 1px solid var(--error-border);
+}
+
+/* --- Marker Styling --- */
+.leaflet-marker-icon {
+    /* Base marker style - NO TRANSITIONS or ANIMATIONS here */
+    /* Leaflet's default blue pin color filter: (APPROXIMATE) */
+     /* filter: hue-rotate(170deg) saturate(3) brightness(0.9); */
+     /* We let Leaflet handle the default icon */
+}
+
+/* Style for the marker when it's the CORRECT answer and revealed */
+.correct-marker-reveal {
+    /* Apply green color filter INSTANTLY, no animation/transition on transform */
+    filter: hue-rotate(240deg) saturate(6); /* Bright Green */
+    /* Optional: Slight scale up for emphasis, using a filter transition */
+    /* transform: scale(1.1); */ /* Avoid transform */
+    /* transition: filter 0.1s ease-in-out; */ /* Optional: Fast filter fade */
+}
+
+/* Style for the INCORRECT marker that was CLICKED */
+.incorrect-marker-clicked {
+    /* Apply dimming filter INSTANTLY or with fast transition */
+    filter: var(--dimmed-filter);
+    /* transition: filter 0.2s ease; */ /* Optional fast filter transition */
+    /* REMOVED transform: scale(0.95) */
+}
+
+/* Style for the CORRECT marker when revealed after an INCORRECT guess */
+.incorrect-marker-correct-reveal {
+    /* Apply red color filter INSTANTLY */
+     filter: hue-rotate(0deg) saturate(6); /* Bright Red */
+     /* Optional: Fast opacity transition if needed for appearance */
+     /* opacity: 1; */
+     /* transition: filter 0.1s ease, opacity 0.2s ease; */
+     /* REMOVED transform animations */
+}
+
+/* REMOVED @keyframes markerBounce and markerAppear */
+
+
+/* --- Menu Overlay --- */
+#menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Dark overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1050; /* Above everything */
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease, visibility 0s linear 0s;
+}
+#menu-overlay.menu-hidden {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+}
+
+#menu-content {
+    background-color: var(--light-text);
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    max-width: 400px;
+    width: 85%;
+    transform: scale(1);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+#menu-overlay.menu-hidden #menu-content {
+    transform: scale(0.8);
+}
+
+#menu-stats {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    text-align: left;
+}
+#menu-stats h3 {
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+    color: var(--dark-text);
+}
+#menu-stats p {
+    margin: 8px 0;
+    color: var(--medium-text);
+    font-size: 0.95em;
+}
+#menu-stats strong {
+    color: var(--dark-text);
+    font-weight: 600;
+    float: right; /* Align numbers to the right */
+}
+
+#menu-content button {
+    display: block; /* Stack buttons */
+    width: 100%;
+    margin: 15px 0 0 0; /* Add top margin */
+    box-sizing: border-box;
+}
+#menu-content button:first-of-type {
+    margin-top: 0; /* No top margin for the first button after stats */
+}
+
+
+/* --- Leaflet Specific Adjustments --- */
+.leaflet-control-zoom {
+    border-radius: 8px !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
+}
+.leaflet-control-zoom a {
+    border-radius: 8px !important;
+}
+.leaflet-popup-content-wrapper {
+    border-radius: 8px !important;
+}
+/* Add will-change hint - This might help, might not. Test carefully. */
+.leaflet-marker-pane .leaflet-marker-icon {
+    will-change: transform;
+}
+
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 768px) {
+    #app-container {
+        width: 100%;
+        margin: 0;
+        border-radius: 0;
+        min-height: 100vh;
+    }
+    #map {
+        border-radius: 0; /* Remove rounding on mobile */
+    }
+    #main-content {
+        height: calc(100vh - 65px); /* Adjust height for smaller HUD */
+        min-height: 400px;
+    }
+    #top-hud {
+        padding: 10px 15px;
+    }
+    h1#game-title {
+        font-size: 1.2em;
+    }
+    .hud-item {
+        font-size: 0.85em;
+        margin-right: 10px;
+    }
+     #prompt-area {
+        font-size: 1em;
+        padding: 10px 20px;
+        bottom: 60px; /* Adjust position */
+    }
+    #notification-panel {
+        width: 90%;
+        padding: 12px 15px;
+        font-size: 0.9em;
+        bottom: 10px; /* Adjust position */
+    }
+    #menu-content {
+         width: 90%;
+         padding: 20px;
+    }
+    body {
+        /* Prevent bouncing scroll on iOS */
+        position: fixed;
+        width: 100%;
+        overflow: hidden;
+    }
 }
