@@ -31,12 +31,12 @@
 
 /* --- General Styles (body, #app-container, headings, buttons, HUD etc.) --- */
 html {
-    height: 100%;
-    overflow-x: hidden;
-    box-sizing: border-box;
+    height: 100%; /* Needed for potential percentage heights on body/container */
+    overflow-x: hidden; /* Prevent horizontal scroll at the very top level */
+    box-sizing: border-box; /* Apply consistent box-sizing */
 }
 *, *:before, *:after {
-    box-sizing: inherit;
+    box-sizing: inherit; /* Inherit box-sizing */
 }
 
 body {
@@ -45,12 +45,12 @@ body {
     display: flex;
     justify-content: center;
     align-items: center; /* Center container vertically on desktop */
-    min-height: 100vh; /* Use vh for desktop body height */
+    min-height: 100vh; /* Base min-height for desktop */
     margin: 0;
     padding: 0;
     color: var(--dark-text);
-    overflow-x: hidden;
-    /* overscroll-behavior-y: contain; /* Keep this for mobile */
+    overflow-x: hidden; /* Prevent body horizontal scroll */
+    /* overscroll-behavior-y: contain; /* Keep disabled for now, re-enable if needed */
 }
 
 #app-container {
@@ -59,35 +59,22 @@ body {
     box-shadow: 0 8px 30px var(--shadow-color);
     max-width: 900px;
     width: 95%;
-    margin: 20px auto; /* Keep auto margins for centering */
+    margin: 20px auto; /* Centering for desktop */
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: hidden; /* Crucial to clip content */
     flex-shrink: 0;
-    /* Desktop height constraint */
+    /* Desktop height constraints */
     max-height: calc(100vh - 40px);
-    /* Set a substantial default height for desktop */
-    height: 85vh; /* Try setting a viewport height */
+    height: 85vh; /* Default height for desktop */
 }
 
 
-h1, h2, h3 {
-    color: var(--dark-text);
-    text-align: center;
-    margin-top: 0;
-}
-
-h1#game-title {
-    font-size: 1.4em;
-    font-weight: 600;
-    margin: 0;
-    line-height: 1.2;
-}
+h1, h2, h3 { color: var(--dark-text); text-align: center; margin-top: 0; }
+h1#game-title { font-size: 1.4em; font-weight: 600; margin: 0; line-height: 1.2; }
 
 /* Buttons */
-button {
-    font-family: var(--font-family); border: none; padding: 10px 20px; font-size: 1em; border-radius: 8px; cursor: pointer; transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease; margin: 5px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
+button { font-family: var(--font-family); border: none; padding: 10px 20px; font-size: 1em; border-radius: 8px; cursor: pointer; transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease; margin: 5px; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 button:hover { opacity: 0.9; box-shadow: 0 4px 8px rgba(0,0,0,0.07); }
 button:active { transform: scale(0.97); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
 .button-primary { background-color: var(--primary-color); color: var(--light-text); }
@@ -102,9 +89,7 @@ button:active { transform: scale(0.97); box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
 #menu-button:active { transform: scale(0.95); }
 
 /* Top HUD */
-#top-hud {
-    display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; background-color: var(--light-text); border-bottom: 1px solid var(--border-color); z-index: 1001; flex-shrink: 0;
-}
+#top-hud { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; background-color: var(--light-text); border-bottom: 1px solid var(--border-color); z-index: 1001; flex-shrink: 0; }
 .hud-left, .hud-right { flex: 1; display: flex; align-items: center; min-width: 150px; }
 .hud-right { justify-content: flex-end; }
 .hud-center { flex: 2; text-align: center; margin: 0 10px; }
@@ -114,27 +99,8 @@ button:active { transform: scale(0.97); box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
 .hud-item:last-child { margin-right: 0; }
 
 /* Main Content & Map */
-#main-content {
-    position: relative;
-    width: 100%;
-    /* Use flex-grow ON DESKTOP to fill remaining space */
-    flex-grow: 1;
-    /* Remove fixed height from base style */
-    /* min-height: 450px; /* Keep minimum height */
-    background-color: var(--map-bg);
-    display: flex; /* Make it a flex container for the map */
-    flex-direction: column; /* Stack map and overlays */
-    overflow: hidden; /* Prevent potential map overflow */
-}
-#map {
-    /* Let map fill the available space within #main-content */
-    flex-grow: 1;
-    width: 100%;
-    border-radius: 0 0 16px 16px;
-    z-index: 1;
-    /* min-height needed to prevent Leaflet collapsing sometimes */
-    min-height: 300px;
-}
+#main-content { position: relative; width: 100%; flex-grow: 1; background-color: var(--map-bg); display: flex; flex-direction: column; overflow: hidden; }
+#map { flex-grow: 1; width: 100%; border-radius: 0 0 16px 16px; z-index: 1; min-height: 300px; }
 
 /* Start Area */
 #start-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 50; padding: 20px; box-sizing: border-box; text-align: center; border-radius: 0 0 16px 16px; opacity: 1; visibility: visible; transition: opacity 0.5s ease, visibility 0s linear 0s; }
@@ -150,9 +116,7 @@ button:active { transform: scale(0.97); box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
 
 
 /* --- Notification Panel --- */
-#notification-panel {
-    position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%) translateY(120%); width: 85%; max-width: 500px; padding: 15px 20px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 500; z-index: 45; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); opacity: 0; visibility: hidden; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease, visibility 0s linear 0.4s; box-sizing: border-box;
-}
+#notification-panel { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%) translateY(120%); width: 85%; max-width: 500px; padding: 15px 20px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 500; z-index: 45; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); opacity: 0; visibility: hidden; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease, visibility 0s linear 0.4s; box-sizing: border-box; }
 #notification-panel.notification-visible { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease, visibility 0s linear 0s; }
 #notification-panel.notification-hidden { transform: translateX(-50%) translateY(120%); opacity: 0; visibility: hidden; transition: transform 0.3s ease-in, opacity 0.3s ease-in, visibility 0s linear 0.3s; }
 #notification-main-content { display: flex; align-items: center; justify-content: center; width: 100%; text-align: center; }
@@ -200,25 +164,34 @@ button:active { transform: scale(0.97); box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
 @media (max-width: 768px) {
     body {
         align-items: flex-start; /* Align container to top on mobile */
-        min-height: 100dvh; /* Use dynamic height */
+        /* Ensure body can adapt height */
+        min-height: -webkit-fill-available; /* Fallback for older Safari */
+        min-height: 100dvh; /* Use dvh */
         overscroll-behavior-y: contain; /* Prevent pull-to-refresh */
     }
 
     #app-container {
         width: 100%; /* Use full width */
-        height: 100dvh; /* Use dynamic viewport height */
-        min-height: 100dvh;
-        max-height: 100dvh; /* Prevent exceeding screen */
-        margin: 0;
-        border-radius: 0;
-        /* height: auto; /* Allow height to be determined by content */
+        margin: 0; /* Remove margin */
+        border-radius: 0; /* Remove border-radius */
+        /* Remove fixed desktop height constraints */
+        height: auto;
+        max-height: none;
+        /* Use fill-available for height on mobile */
+        min-height: 100dvh; /* Ensure it AT LEAST fills dynamic viewport */
+        height: -webkit-fill-available; /* Safari */
+        height: fill-available;         /* Standard */
+        /* Ensure flex direction remains column */
+        flex-direction: column;
+        /* overflow: hidden; /* Inherited */
     }
 
     #top-hud {
         padding: 10px 15px;
         flex-wrap: nowrap;
-        position: static; /* Allow HUD to scroll */
+        position: static; /* Allow HUD to scroll if needed */
     }
+    /* Adjust HUD flex items for mobile */
     .hud-left, .hud-right { flex-basis: auto; min-width: 0; }
     .hud-left { flex-grow: 1; justify-content: flex-start; }
     .hud-right { flex-grow: 0; justify-content: flex-end; }
@@ -228,22 +201,25 @@ button:active { transform: scale(0.97); box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
     .hud-item:last-child { margin-right: 0; }
 
     #main-content {
-        /* Ensure it still grows to fill space */
-        flex-grow: 1;
-        /* Remove min-height if it causes issues on mobile */
-        /* min-height: 0; */
+        /* flex-grow: 1; /* Already set */
+        /* min-height should allow shrinking if needed */
+        min-height: 0;
     }
 
     #map {
         border-radius: 0;
         min-height: 250px; /* Keep a reasonable min-height */
+        /* flex-grow: 1; /* Already set */
     }
 
      #prompt-area { font-size: 1.1em; padding: 10px 20px; bottom: 75px; }
 
-    /* Mobile Notification Panel */
+    /* Mobile Notification Panel (Positioning relative to container) */
     #notification-panel {
-        width: auto; left: 10px; right: 10px; max-width: none; transform: translateY(120%); padding: 12px 15px; font-size: 0.9em; bottom: 10px;
+        width: auto; left: 10px; right: 10px; max-width: none;
+        /* Adjust transform origin if needed, but vertical should be fine */
+        transform: translateY(120%);
+        padding: 12px 15px; font-size: 0.9em; bottom: 10px;
     }
     #notification-panel.notification-visible { transform: translateY(0); }
     #notification-panel.notification-hidden { transform: translateY(120%); }
