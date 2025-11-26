@@ -31,6 +31,12 @@ const menuBestStreakElement = document.getElementById('menu-best-streak');
 const menuDifficultyElement = document.getElementById('menu-difficulty');
 const menuShieldsElement = document.getElementById('menu-shields'); // NEW
 
+// NEW: High Score Elements
+const menuHighScoreElement = document.getElementById('menu-high-score');
+const menuMasteredElement = document.getElementById('menu-mastered');
+
+// NEW: Sound Toggle Button
+const soundToggleButton = document.getElementById('sound-toggle-button');
 
 // --- Spelvariabler ---
 let map;
@@ -44,6 +50,11 @@ let bestStreak = 0;
 let rescueTokens = 0; // NEW: Rescue Shields
 let consecutiveErrors = 0; // NEW: Track consecutive errors
 
+// NEW: High Score and Mastery Tracking
+let highScore = 0;
+let capitalMastery = {}; // Tracks mastery for each capital: { city: { correct: n, total: n } }
+let soundEnabled = true; // Sound toggle state
+
 // --- Konstanter ---
 const MIN_CHOICES = 2; // Start with 2 choices
 const MAX_CHOICES = 15; // Allow progression up to 15 choices
@@ -51,6 +62,7 @@ const STREAK_MILESTONE_DIFFICULTY_INCREASE = 5; // Increase difficulty every 5 s
 const CONSECUTIVE_ERRORS_DIFFICULTY_DECREASE = 2; // Decrease difficulty after 2 consecutive errors
 const STREAK_MILESTONE_FOR_TOKEN = 7; // Earn a shield every 7 streak
 const INITIAL_RESCUE_TOKENS = 1; // Start with one shield
+const MASTERY_THRESHOLD = 3; // Correct answers needed to "master" a capital
 
 let numChoices = MIN_CHOICES; // Start at the minimum
 
@@ -61,8 +73,259 @@ let blockNextQuestion = false; // NEW: Block advancing question during shield pr
 let shieldPromptTimeout = null; // Variable to hold shield prompt timeout
 
 // --- Local Storage Keys ---
-const STORAGE_PREFIX = 'europakollen_v3_'; // Update version prefix
+const STORAGE_PREFIX = 'europakollen_v4_'; // Update version prefix for new features
 const STATE_KEY = STORAGE_PREFIX + 'gameState';
+const HIGH_SCORE_KEY = STORAGE_PREFIX + 'highScore';
+const MASTERY_KEY = STORAGE_PREFIX + 'capitalMastery';
+const SOUND_KEY = STORAGE_PREFIX + 'soundEnabled';
+
+// --- Audio Context for Sound Effects ---
+let audioContext = null;
+
+function initAudioContext() {
+    if (!audioContext) {
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.warn("Web Audio API not supported:", e);
+        }
+    }
+    return audioContext;
+}
+
+// Generate sound effects using Web Audio API
+function playSound(type) {
+    if (!soundEnabled) return;
+    
+    const ctx = initAudioContext();
+    if (!ctx) return;
+    
+    // Resume audio context if suspended (browser autoplay policy)
+    if (ctx.state === 'suspended') {
+        ctx.resume();
+    }
+    
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    const now = ctx.currentTime;
+    
+    switch (type) {
+        case 'correct':
+            // Happy ascending tone
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(523.25, now); // C5
+            oscillator.frequency.setValueAtTime(659.25, now + 0.1); // E5
+            oscillator.frequency.setValueAtTime(783.99, now + 0.2); // G5
+            gainNode.gain.setValueAtTime(0.3, now);
+            gainNode.gain.exponentialDecayTo && gainNode.gain.exponentialDecayTo(0.01, now + 0.4);
+            gainNode.gain.setValueAtTime(0.3, now);
+            gainNode.gain.linearRampToValueAtTime(0.01, now + 0.4);
+            oscillator.start(now);
+            oscillator.stop(now + 0.4);
+            break;
+            
+        case 'incorrect':
+            // Descending tone
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(300, now);
+            oscillator.frequency.linearRampToValueAtTime(150, now + 0.3);
+            gainNode.gain.setValueAtTime(0.2, now);
+            gainNode.gain.linearRampToValueAtTime(0.01, now + 0.3);
+            oscillator.start(now);
+            oscillator.stop(now + 0.3);
+            break;
+            
+        case 'shield':
+            // Magical/shield sound
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(400, now);
+            oscillator.frequency.setValueAtTime(600, now + 0.1);
+            oscillator.frequency.setValueAtTime(800, now + 0.2);
+            oscillator.frequency.setValueAtTime(1000, now + 0.3);
+            gainNode.gain.setValueAtTime(0.25, now);
+            gainNode.gain.linearRampToValueAtTime(0.01, now + 0.5);
+            oscillator.start(now);
+            oscillator.stop(now + 0.5);
+            break;
+            
+        case 'highscore':
+            // Fanfare for new high score
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(523.25, now); // C5
+            oscillator.frequency.setValueAtTime(659.25, now + 0.15); // E5
+            oscillator.frequency.setValueAtTime(783.99, now + 0.3); // G5
+            oscillator.frequency.setValueAtTime(1046.50, now + 0.45); // C6
+            gainNode.gain.setValueAtTime(0.35, now);
+            gainNode.gain.linearRampToValueAtTime(0.01, now + 0.7);
+            oscillator.start(now);
+            oscillator.stop(now + 0.7);
+            break;
+            
+        case 'click':
+            // Subtle click
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(800, now);
+            gainNode.gain.setValueAtTime(0.1, now);
+            gainNode.gain.linearRampToValueAtTime(0.01, now + 0.05);
+            oscillator.start(now);
+            oscillator.stop(now + 0.05);
+            break;
+    }
+}
+
+// Toggle sound on/off
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    updateSoundToggleButton();
+    saveSoundPreference();
+    if (soundEnabled) {
+        playSound('click');
+    }
+}
+
+function updateSoundToggleButton() {
+    if (soundToggleButton) {
+        soundToggleButton.textContent = soundEnabled ? '🔊' : '🔇';
+        soundToggleButton.title = soundEnabled ? 'Stäng av ljud' : 'Sätt på ljud';
+    }
+}
+
+function saveSoundPreference() {
+    try {
+        localStorage.setItem(SOUND_KEY, JSON.stringify(soundEnabled));
+    } catch (e) {
+        console.warn("Could not save sound preference:", e);
+    }
+}
+
+function loadSoundPreference() {
+    try {
+        const saved = localStorage.getItem(SOUND_KEY);
+        if (saved !== null) {
+            soundEnabled = JSON.parse(saved);
+        }
+    } catch (e) {
+        console.warn("Could not load sound preference:", e);
+    }
+}
+
+// --- Confetti Animation ---
+function createConfetti() {
+    const confettiContainer = document.createElement('div');
+    confettiContainer.className = 'confetti-container';
+    confettiContainer.id = 'confetti-container';
+    document.body.appendChild(confettiContainer);
+    
+    const colors = ['#f1c40f', '#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#e67e22'];
+    const shapes = ['square', 'circle'];
+    
+    for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti ' + shapes[Math.floor(Math.random() * shapes.length)];
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.animationDelay = Math.random() * 0.5 + 's';
+        confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+        confettiContainer.appendChild(confetti);
+    }
+    
+    // Remove confetti after animation
+    setTimeout(() => {
+        confettiContainer.remove();
+    }, 4000);
+}
+
+// --- Capital Mastery Functions ---
+function updateCapitalMastery(city, isCorrect) {
+    if (!capitalMastery[city]) {
+        capitalMastery[city] = { correct: 0, total: 0 };
+    }
+    capitalMastery[city].total++;
+    if (isCorrect) {
+        capitalMastery[city].correct++;
+    }
+    saveMastery();
+}
+
+function getCapitalMasteryStatus(city) {
+    if (!capitalMastery[city]) return 'unknown';
+    const data = capitalMastery[city];
+    if (data.correct >= MASTERY_THRESHOLD) return 'mastered';
+    if (data.total > 0 && data.correct > 0) return 'learning';
+    return 'struggling';
+}
+
+function getMasteredCount() {
+    let count = 0;
+    for (const city in capitalMastery) {
+        if (capitalMastery[city].correct >= MASTERY_THRESHOLD) {
+            count++;
+        }
+    }
+    return count;
+}
+
+function saveMastery() {
+    try {
+        localStorage.setItem(MASTERY_KEY, JSON.stringify(capitalMastery));
+    } catch (e) {
+        console.warn("Could not save mastery data:", e);
+    }
+}
+
+function loadMastery() {
+    try {
+        const saved = localStorage.getItem(MASTERY_KEY);
+        if (saved) {
+            capitalMastery = JSON.parse(saved);
+        }
+    } catch (e) {
+        console.warn("Could not load mastery data:", e);
+        capitalMastery = {};
+    }
+}
+
+// --- High Score Functions ---
+function saveHighScore() {
+    try {
+        localStorage.setItem(HIGH_SCORE_KEY, JSON.stringify(highScore));
+    } catch (e) {
+        console.warn("Could not save high score:", e);
+    }
+}
+
+function loadHighScore() {
+    try {
+        const saved = localStorage.getItem(HIGH_SCORE_KEY);
+        if (saved) {
+            highScore = JSON.parse(saved);
+        }
+    } catch (e) {
+        console.warn("Could not load high score:", e);
+        highScore = 0;
+    }
+}
+
+function checkHighScore() {
+    if (score > highScore) {
+        const isNewRecord = highScore > 0; // Only celebrate if beating a previous record
+        highScore = score;
+        saveHighScore();
+        if (isNewRecord) {
+            playSound('highscore');
+            createConfetti();
+            setTimeout(() => {
+                showNotification(`🏆 Nytt rekord! ${highScore} poäng!`, 'highscore', 3000);
+            }, 100);
+        }
+        return true;
+    }
+    return false;
+}
 
 // --- Data (Assume europeanCapitals is loaded externally) ---
 if (typeof europeanCapitals === 'undefined') {
@@ -233,6 +496,16 @@ function updateMenuStats() {
      menuBestStreakElement.textContent = bestStreak;
      menuDifficultyElement.textContent = numChoices;
      menuShieldsElement.textContent = rescueTokens; // Update shields in menu
+     
+     // NEW: Update high score and mastered count
+     if (menuHighScoreElement) {
+         menuHighScoreElement.textContent = highScore;
+     }
+     if (menuMasteredElement) {
+         const mastered = getMasteredCount();
+         const total = allCapitals.length;
+         menuMasteredElement.textContent = `${mastered}/${total}`;
+     }
 }
 
 // Modified showNotification to handle refined text and shield prompt integration
@@ -244,6 +517,7 @@ function showNotification(message, type = 'info', duration = 3000, offerShield =
     // Clear any previous special styles like 'shield-earned' if not the current type
     if (type !== 'shield-earned') notificationPanel.classList.remove('shield-earned');
     if (type !== 'info' && type !== 'difficulty') notificationPanel.classList.remove('info');
+    if (type !== 'highscore') notificationPanel.classList.remove('highscore');
 
     // Set icon based on type
     if (type === 'correct') {
@@ -256,6 +530,9 @@ function showNotification(message, type = 'info', duration = 3000, offerShield =
     } else if (type === 'difficulty') {
         notificationIconElement.textContent = '⚙️'; // Gear icon
         notificationPanel.classList.add('info'); // Use info styling for difficulty
+    } else if (type === 'highscore') {
+        notificationIconElement.textContent = '🏆';
+        // High score type styling
     } else { // Default to info
         notificationIconElement.textContent = 'ℹ️';
         notificationPanel.classList.add('info');
@@ -501,6 +778,9 @@ function handleMarkerClick(event) {
     questionNumber++;
     console.log(`Answered question ${questionNumber}. Correct: ${isCorrect}`);
 
+    // Update capital mastery tracking
+    updateCapitalMastery(correctAnswer.city, isCorrect);
+
     const correctMapMarker = markers.find(m => m && m.options.capitalData.city === correctAnswer.city);
 
     // --- Refined Feedback & Game Logic ---
@@ -511,6 +791,13 @@ function handleMarkerClick(event) {
         if (currentStreak > bestStreak) {
             bestStreak = currentStreak;
         }
+        
+        // Play correct sound
+        playSound('correct');
+        
+        // Check for high score
+        checkHighScore();
+        
         // Refined Correct Message
         const correctMsg = `✅ Perfekt! ${correctAnswer.city} (${correctAnswer.country}) är rätt! +1 Poäng!`;
         showNotification(correctMsg, 'correct', 2500);
@@ -536,6 +823,7 @@ function handleMarkerClick(event) {
         if (currentStreak > 0 && currentStreak % STREAK_MILESTONE_FOR_TOKEN === 0) {
             rescueTokens++;
             console.log("Shield earned! Total:", rescueTokens);
+            playSound('shield');
             const shieldEarnedMsg = `🛡️ Grym streak på ${currentStreak}! Du fick en sköld!`;
             // Show shield notification *after* correct answer feedback fades
             setTimeout(() => {
@@ -555,6 +843,9 @@ function handleMarkerClick(event) {
     } else { // Incorrect Answer
         consecutiveErrors++; // Increment consecutive errors
         console.log(`Incorrect. Consecutive errors: ${consecutiveErrors}`);
+        
+        // Play incorrect sound
+        playSound('incorrect');
 
         const distance = calculateDistance(clickedCapital.lat, clickedCapital.lon, correctAnswer.lat, correctAnswer.lon);
         // Refined Incorrect Message (base part)
@@ -859,6 +1150,11 @@ menuOverlay.addEventListener('click', (event) => {
 shieldYesButton.addEventListener('click', () => handleShieldResponse(true));
 shieldNoButton.addEventListener('click', () => handleShieldResponse(false));
 
+// Sound toggle button listener
+if (soundToggleButton) {
+    soundToggleButton.addEventListener('click', toggleSound);
+}
+
 
 // --- Initialisering vid sidladdning ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -877,6 +1173,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initMap(); // Initialize map early
+    
+    // Load preferences and high score data
+    loadSoundPreference();
+    loadHighScore();
+    loadMastery();
+    updateSoundToggleButton();
 
     const loaded = loadState(); // Attempt to load state
 

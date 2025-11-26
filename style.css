@@ -16,6 +16,8 @@
     --dimmed-filter: grayscale(80%) brightness(0.9) sepia(20%);
     /* Shield color (Gold-ish) */
     --shield-color: #f1c40f;
+    /* High score color (Gold) */
+    --highscore-color: #f39c12;
 
 
     --light-bg: #f8f9fa;
@@ -87,6 +89,9 @@ button:active { transform: scale(0.97); box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
 #menu-button { background: none; border: none; font-size: 1.8em; color: var(--dark-text); cursor: pointer; padding: 5px 10px; line-height: 1; box-shadow: none; }
 #menu-button:hover { background-color: rgba(0,0,0,0.05); border-radius: 50%; }
 #menu-button:active { transform: scale(0.95); }
+#sound-toggle-button { background: none; border: none; font-size: 1.4em; color: var(--dark-text); cursor: pointer; padding: 5px 8px; line-height: 1; box-shadow: none; margin-right: 5px; }
+#sound-toggle-button:hover { background-color: rgba(0,0,0,0.05); border-radius: 50%; }
+#sound-toggle-button:active { transform: scale(0.95); }
 
 /* Top HUD */
 #top-hud { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; background-color: var(--light-text); border-bottom: 1px solid var(--border-color); z-index: 1001; flex-shrink: 0; }
@@ -126,6 +131,7 @@ button:active { transform: scale(0.97); box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
 #notification-panel.incorrect { background-color: var(--error-bg); color: var(--error-color); border: 1px solid var(--error-border); }
 #notification-panel.shield-earned { background-color: #fffbeb; color: #b38f00; border: 1px solid #ffe58f; }
 #notification-panel.info { background-color: #e7f3fe; color: #0b5ed7; border: 1px solid #b6d4fe; }
+#notification-panel.highscore { background-color: #fff8e6; color: var(--highscore-color); border: 1px solid #ffd966; font-weight: 600; }
 #shield-prompt { margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.1); width: 100%; text-align: center; }
 #shield-prompt.hidden { display: none; }
 #shield-prompt p { margin: 0 0 10px 0; font-size: 0.95em; color: var(--medium-text); }
@@ -254,4 +260,73 @@ button:active { transform: scale(0.97); box-shadow: 0 1px 2px rgba(0,0,0,0.05); 
      .hud-item { font-size: 0.7em; margin-right: 3px; }
      #notification-panel { font-size: 0.75em; padding: 6px 8px; }
      #prompt-area { font-size: 0.9em; padding: 6px 12px; bottom: 60px; }
+}
+
+/* ========================================= */
+/* --- Confetti Animation --- */
+/* ========================================= */
+
+.confetti-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+.confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    top: -20px;
+    animation: confetti-fall linear forwards;
+    opacity: 0.9;
+}
+
+.confetti.square {
+    border-radius: 2px;
+}
+
+.confetti.circle {
+    border-radius: 50%;
+}
+
+@keyframes confetti-fall {
+    0% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        opacity: 1;
+    }
+    25% {
+        transform: translateY(25vh) rotate(180deg) translateX(20px) scale(0.9);
+        opacity: 0.9;
+    }
+    50% {
+        transform: translateY(50vh) rotate(360deg) translateX(-10px) scale(0.8);
+        opacity: 0.8;
+    }
+    75% {
+        transform: translateY(75vh) rotate(540deg) translateX(15px) scale(0.6);
+        opacity: 0.6;
+    }
+    100% {
+        transform: translateY(100vh) rotate(720deg) translateX(0) scale(0.4);
+        opacity: 0;
+    }
+}
+
+/* ========================================= */
+/* --- High Score and Mastery Styles --- */
+/* ========================================= */
+
+#menu-high-score {
+    color: var(--highscore-color);
+    font-weight: 700;
+}
+
+#menu-mastered {
+    color: var(--primary-color);
+    font-weight: 600;
 }
