@@ -407,7 +407,8 @@ button:focus-visible {
 .leaflet-marker-icon { 
     /* Base marker style - smooth appearance animation */
     animation: markerAppear 0.3s ease-out;
-    transition: transform 0.2s ease, filter 0.3s ease;
+    /* Only transition filter, not transform - transform transition causes markers to lag during zoom */
+    transition: filter 0.3s ease;
 }
 .leaflet-marker-icon:hover {
     transform: scale(1.15);
