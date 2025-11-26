@@ -17,6 +17,10 @@
     --dimmed-filter: grayscale(80%) brightness(0.9) sepia(20%);
     /* Shield color (Gold-ish) */
     --shield-color: #f1c40f;
+    /* Trophy/High score color */
+    --trophy-color: #f39c12;
+    /* Mastery/Star color */
+    --mastery-color: #9b59b6;
 
     --light-bg: #f8f9fa;
     --medium-bg: #eef1f5;
@@ -51,6 +55,8 @@
     --error-bg: #3d1e1e;
     --error-border: #e74c3c;
     --shield-color: #f1c40f;
+    --trophy-color: #f39c12;
+    --mastery-color: #9b59b6;
 
     --light-bg: #2d3436;
     --medium-bg: #1e272e;
@@ -63,6 +69,17 @@
     --map-bg: #2d3436;
     --container-bg: #1e272e;
     --focus-ring: 0 0 0 3px rgba(93, 173, 226, 0.4);
+}
+
+/* --- Confetti Canvas --- */
+#confetti-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
 }
 
 /* --- General Styles (body, #app-container, headings, buttons, HUD etc.) --- */
@@ -245,6 +262,10 @@ button:focus-visible {
 }
 #hud-shields { color: var(--shield-color); }
 #hud-streak { color: var(--error-color-fg); }
+#hud-high-score { color: var(--trophy-color); }
+.hud-item-highscore {
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.1) 0%, rgba(241, 196, 15, 0.15) 100%);
+}
 .hud-progress {
     font-size: 0.8em;
     color: var(--medium-text);
@@ -551,6 +572,8 @@ button:focus-visible {
     font-weight: 600;
 }
 #menu-shields { color: var(--shield-color); font-weight: 700; }
+#menu-high-score { color: var(--trophy-color); font-weight: 700; }
+#menu-mastered-count { color: var(--mastery-color); font-weight: 700; }
 #menu-content button { 
     display: block; 
     width: 100%; 
