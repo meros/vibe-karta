@@ -23,6 +23,7 @@ const shieldNoButton = document.getElementById('shield-no-button');
 const hudScoreElement = document.getElementById('hud-score');
 const hudStreakElement = document.getElementById('hud-streak');
 const hudShieldsElement = document.getElementById('hud-shields'); // NEW
+const hudProgressElement = document.getElementById('hud-progress'); // NEW: Progress indicator
 
 // Menu Stats Elements
 const menuQuestionNumberElement = document.getElementById('menu-question-number');
@@ -224,6 +225,13 @@ function updateHUD() {
     hudScoreElement.textContent = score;
     hudStreakElement.textContent = currentStreak;
     hudShieldsElement.textContent = rescueTokens; // Update shield count
+    
+    // Update progress indicator
+    if (hudProgressElement && allCapitals.length > 0) {
+        const totalQuestions = allCapitals.length;
+        const currentQuestion = Math.min(questionNumber + 1, totalQuestions);
+        hudProgressElement.textContent = `Fråga ${currentQuestion} av ${totalQuestions}`;
+    }
 }
 
 function updateMenuStats() {
@@ -901,7 +909,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
      // Update welcome text dynamically
-     const welcomeParagraph = document.querySelector('#start-area p');
+     const welcomeParagraph = document.querySelector('#start-area p.start-description');
      if (welcomeParagraph) {
          welcomeParagraph.innerHTML = `Klicka på kartan för att gissa huvudstadens läge. Få långa streaks för att öka svårigheten och tjäna sköldar <strong>🛡️</strong> som kan rädda din streak när du gissar fel!`; // Use innerHTML for bold icon
      }
