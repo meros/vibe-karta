@@ -73,7 +73,8 @@ let blockNextQuestion = false; // NEW: Block advancing question during shield pr
 let shieldPromptTimeout = null; // Variable to hold shield prompt timeout
 
 // --- Local Storage Keys ---
-const STORAGE_PREFIX = 'europakollen_v4_'; // Update version prefix for new features
+// Version prefix updated to v4 to accommodate new features: high score tracking, capital mastery, and sound preferences
+const STORAGE_PREFIX = 'europakollen_v4_';
 const STATE_KEY = STORAGE_PREFIX + 'gameState';
 const HIGH_SCORE_KEY = STORAGE_PREFIX + 'highScore';
 const MASTERY_KEY = STORAGE_PREFIX + 'capitalMastery';
@@ -120,8 +121,6 @@ function playSound(type) {
             oscillator.frequency.setValueAtTime(523.25, now); // C5
             oscillator.frequency.setValueAtTime(659.25, now + 0.1); // E5
             oscillator.frequency.setValueAtTime(783.99, now + 0.2); // G5
-            gainNode.gain.setValueAtTime(0.3, now);
-            gainNode.gain.exponentialDecayTo && gainNode.gain.exponentialDecayTo(0.01, now + 0.4);
             gainNode.gain.setValueAtTime(0.3, now);
             gainNode.gain.linearRampToValueAtTime(0.01, now + 0.4);
             oscillator.start(now);
@@ -312,10 +311,10 @@ function loadHighScore() {
 
 function checkHighScore() {
     if (score > highScore) {
-        const isNewRecord = highScore > 0; // Only celebrate if beating a previous record
+        const hadPreviousRecord = highScore > 0; // Only celebrate if there was a previous record to beat
         highScore = score;
         saveHighScore();
-        if (isNewRecord) {
+        if (hadPreviousRecord) {
             playSound('highscore');
             createConfetti();
             setTimeout(() => {
