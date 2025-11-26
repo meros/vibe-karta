@@ -8,11 +8,13 @@
     --success-color: #2ecc71;
     --success-bg: #eafaf1;
     --success-border: #a6e9c0;
+    --success-glow: rgba(46, 204, 113, 0.6); /* Glow color for correct markers */
      /* Brighter Red for Incorrect Reveal */
     --error-color-fg: #e74c3c; /* Use this for the pin color */
     --error-color: #a94442; /* Text color for notification */
     --error-bg: #fdeded;
     --error-border: #f8d7da;
+    --error-glow: rgba(231, 76, 60, 0.6); /* Glow color for incorrect markers */
     /* Dim color for incorrect clicked */
     --dimmed-filter: grayscale(80%) brightness(0.9) sepia(20%);
     /* Shield color (Gold-ish) */
@@ -46,10 +48,12 @@
     --success-color: #27ae60;
     --success-bg: #1e3d2f;
     --success-border: #27ae60;
+    --success-glow: rgba(46, 204, 113, 0.6);
     --error-color-fg: #e74c3c;
     --error-color: #e57373;
     --error-bg: #3d1e1e;
     --error-border: #e74c3c;
+    --error-glow: rgba(231, 76, 60, 0.6);
     --shield-color: #f1c40f;
 
     --light-bg: #2d3436;
@@ -436,47 +440,38 @@ button:focus-visible {
 
 /* --- Marker Styling --- */
 .leaflet-marker-icon { 
-    /* Base marker style - smooth appearance animation */
+    /* Base marker style - fade in only, no transform to avoid conflicts with Leaflet positioning */
     animation: markerAppear 0.3s ease-out;
-    /* Only transition filter, not transform - transform transition causes markers to lag during zoom */
+    /* Only transition filter, not transform - transform causes markers to lag during zoom */
     transition: filter 0.3s ease;
 }
 .leaflet-marker-icon:hover {
-    transform: scale(1.15);
+    /* Use filter for hover effect instead of transform to avoid positioning conflicts */
+    filter: brightness(1.1) drop-shadow(0 2px 4px rgba(0,0,0,0.3));
     z-index: 1000 !important;
 }
 @keyframes markerAppear {
+    /* Only animate opacity - no transform to prevent marker position issues during map movement */
     0% { 
         opacity: 0; 
-        transform: scale(0.5) translateY(-10px); 
     }
     100% { 
         opacity: 1; 
-        transform: scale(1) translateY(0); 
     }
 }
 .correct-marker-reveal { 
-    filter: hue-rotate(240deg) saturate(6) brightness(1.1);
-    animation: correctPulse 0.6s ease-out;
-}
-@keyframes correctPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.3); }
-    100% { transform: scale(1); }
+    /* Use filter for visual feedback instead of transform animation */
+    filter: hue-rotate(240deg) saturate(6) brightness(1.2) drop-shadow(0 0 8px var(--success-glow));
+    z-index: 1000 !important;
 }
 .incorrect-marker-clicked { 
     filter: var(--dimmed-filter); 
     z-index: 5 !important; 
 }
 .incorrect-marker-correct-reveal { 
-    filter: hue-rotate(0deg) saturate(7) brightness(1.05); 
+    /* Use filter for visual feedback instead of transform animation */
+    filter: hue-rotate(0deg) saturate(7) brightness(1.15) drop-shadow(0 0 8px var(--error-glow)); 
     z-index: 10 !important;
-    animation: correctReveal 0.6s ease-out;
-}
-@keyframes correctReveal {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.25); }
-    100% { transform: scale(1); }
 }
 
 /* --- Menu Overlay --- */
@@ -710,15 +705,33 @@ button:focus-visible {
 
      #prompt-area { font-size: 1.1em; padding: 10px 20px; bottom: 75px; }
 
-    /* Mobile Notification Panel (Positioning relative to container) */
+    /* Mobile Notification Panel - improved toast styling */
     #notification-panel {
-        width: auto; left: 10px; right: 10px; max-width: none;
-        /* Adjust transform origin if needed, but vertical should be fine */
+        /* Use left/right positioning instead of translateX for mobile */
+        left: 12px; 
+        right: 12px; 
+        width: auto;
+        max-width: none;
         transform: translateY(120%);
-        padding: 12px 15px; font-size: 0.9em; bottom: 10px;
+        padding: 14px 18px; 
+        font-size: 0.95em; 
+        bottom: 12px;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
     #notification-panel.notification-visible { transform: translateY(0); }
     #notification-panel.notification-hidden { transform: translateY(120%); }
+    
+    #notification-main-content {
+        gap: 10px;
+    }
+    #notification-icon {
+        font-size: 1.5em;
+    }
+    #notification-text {
+        font-size: 0.95em;
+        line-height: 1.4;
+    }
 
     #menu-content { width: 90%; padding: 24px; }
 }
@@ -747,10 +760,30 @@ button:focus-visible {
 
      #prompt-area { font-size: 1em; padding: 8px 15px; bottom: 65px; }
 
-    #notification-panel { padding: 10px 12px; font-size: 0.85em; left: 5px; right: 5px; bottom: 5px; }
-    #notification-main-content { flex-direction: column; align-items: center; }
-    #notification-icon { margin-right: 0; margin-bottom: 5px; font-size: 1.2em; }
-    #notification-text { line-height: 1.3; }
+    /* Improved toast styling for smaller mobile screens */
+    #notification-panel { 
+        padding: 12px 14px; 
+        font-size: 0.9em; 
+        left: 8px; 
+        right: 8px; 
+        bottom: 8px;
+        border-radius: 14px;
+    }
+    #notification-main-content { 
+        flex-direction: row; 
+        align-items: center;
+        gap: 8px;
+    }
+    #notification-icon { 
+        margin-right: 0;
+        margin-bottom: 0; 
+        font-size: 1.3em;
+        flex-shrink: 0;
+    }
+    #notification-text { 
+        line-height: 1.35;
+        text-align: left;
+    }
 
     .button-small { padding: 5px 10px; font-size: 0.8em; }
      #menu-stats p { font-size: 0.9em; }
@@ -764,7 +797,18 @@ button:focus-visible {
      h1#game-title { font-size: 0.85em; margin: 0 3px;}
      .hud-item { font-size: 0.65em; padding: 2px 5px; }
      .hud-progress { display: none; } /* Hide progress on very small screens */
-     #notification-panel { font-size: 0.75em; padding: 8px 10px; }
+     
+     #notification-panel { 
+         font-size: 0.85em; 
+         padding: 10px 12px;
+         left: 6px;
+         right: 6px;
+         bottom: 6px;
+         border-radius: 12px;
+     }
+     #notification-icon { font-size: 1.2em; }
+     #notification-text { font-size: 0.85em; }
+     
      #prompt-area { font-size: 0.9em; padding: 6px 12px; bottom: 60px; }
      
      .start-area-content { padding: 16px; }
