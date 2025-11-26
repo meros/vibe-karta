@@ -600,6 +600,7 @@ button:focus-visible {
     border-radius: 50%;
     transition: transform 0.3s ease, background-color 0.3s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
 }
 .theme-toggle.active {
     background-color: var(--primary-color);
@@ -613,6 +614,7 @@ button:focus-visible {
     top: 50%;
     transform: translateY(-50%);
     transition: opacity 0.3s ease;
+    pointer-events: none;
 }
 .theme-toggle-icon.sun {
     left: 6px;
