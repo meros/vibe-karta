@@ -64,6 +64,12 @@ let shieldPromptTimeout = null; // Variable to hold shield prompt timeout
 // --- Local Storage Keys ---
 const STORAGE_PREFIX = 'europakollen_v3_'; // Update version prefix
 const STATE_KEY = STORAGE_PREFIX + 'gameState';
+const THEME_KEY = STORAGE_PREFIX + 'theme';
+
+// --- Theme Variables ---
+let currentTheme = 'light';
+let darkTileLayer = null;
+let lightTileLayer = null;
 
 // --- Data (Assume europeanCapitals is loaded externally) ---
 if (typeof europeanCapitals === 'undefined') {
@@ -107,12 +113,27 @@ function initMap() {
             attributionControl: true
         }).setView([55, 15], 4);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+        // Create both tile layers
+        lightTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
             attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
             subdomains: 'abcd',
             maxZoom: 10,
             minZoom: 3
-        }).addTo(map);
+        });
+
+        darkTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 10,
+            minZoom: 3
+        });
+
+        // Add the appropriate tile layer based on current theme
+        if (currentTheme === 'dark') {
+            darkTileLayer.addTo(map);
+        } else {
+            lightTileLayer.addTo(map);
+        }
 
         map.on('load', () => {
             console.log("Map initialized and tiles loaded.");
@@ -852,6 +873,72 @@ function adjustMarkerZIndex() {
     // Primarily rely on Leaflet default + CSS for explicit overrides (.incorrect-marker-correct-reveal)
 }
 
+// --- Theme Functions ---
+function loadTheme() {
+    try {
+        const savedTheme = localStorage.getItem(THEME_KEY);
+        if (savedTheme === 'dark' || savedTheme === 'light') {
+            currentTheme = savedTheme;
+        } else {
+            // Check for system preference
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                currentTheme = 'dark';
+            } else {
+                currentTheme = 'light';
+            }
+        }
+    } catch (e) {
+        console.error("Could not load theme preference:", e);
+        currentTheme = 'light';
+    }
+}
+
+function applyTheme(theme) {
+    currentTheme = theme;
+    document.documentElement.setAttribute('data-theme', theme);
+    
+    // Update toggle button state
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        if (theme === 'dark') {
+            themeToggle.classList.add('active');
+        } else {
+            themeToggle.classList.remove('active');
+        }
+    }
+    
+    // Update map tiles if map exists
+    if (map && lightTileLayer && darkTileLayer) {
+        if (theme === 'dark') {
+            if (map.hasLayer(lightTileLayer)) {
+                map.removeLayer(lightTileLayer);
+            }
+            if (!map.hasLayer(darkTileLayer)) {
+                darkTileLayer.addTo(map);
+            }
+        } else {
+            if (map.hasLayer(darkTileLayer)) {
+                map.removeLayer(darkTileLayer);
+            }
+            if (!map.hasLayer(lightTileLayer)) {
+                lightTileLayer.addTo(map);
+            }
+        }
+    }
+    
+    // Save preference
+    try {
+        localStorage.setItem(THEME_KEY, theme);
+    } catch (e) {
+        console.error("Could not save theme preference:", e);
+    }
+}
+
+function toggleTheme() {
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(newTheme);
+}
+
 
 // --- Event Listeners ---
 startButton.addEventListener('click', () => startGame(false));
@@ -867,10 +954,17 @@ menuOverlay.addEventListener('click', (event) => {
 shieldYesButton.addEventListener('click', () => handleShieldResponse(true));
 shieldNoButton.addEventListener('click', () => handleShieldResponse(false));
 
+// Theme toggle listener
+document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
 
 // --- Initialisering vid sidladdning ---
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM fully loaded and parsed.");
+
+    // Initialize theme early to prevent flash of unstyled content
+    loadTheme();
+    applyTheme(currentTheme);
 
     if (!allCapitals || allCapitals.length === 0) {
        if (typeof europeanCapitals !== 'undefined') {

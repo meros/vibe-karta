@@ -32,6 +32,37 @@
     /* Focus ring for accessibility */
     --focus-ring: 0 0 0 3px rgba(52, 152, 219, 0.4);
     --focus-ring-error: 0 0 0 3px rgba(231, 76, 60, 0.4);
+
+    /* Container background for light mode */
+    --container-bg: #ffffff;
+}
+
+/* Dark Mode Variables */
+[data-theme="dark"] {
+    --primary-color: #5dade2;
+    --primary-color-dark: #3498db;
+    --primary-color-light: #85c1e9;
+    --success-color-fg: #2ecc71;
+    --success-color: #27ae60;
+    --success-bg: #1e3d2f;
+    --success-border: #27ae60;
+    --error-color-fg: #e74c3c;
+    --error-color: #e57373;
+    --error-bg: #3d1e1e;
+    --error-border: #e74c3c;
+    --shield-color: #f1c40f;
+
+    --light-bg: #2d3436;
+    --medium-bg: #1e272e;
+    --dark-text: #ecf0f1;
+    --medium-text: #bdc3c7;
+    --light-text: #ecf0f1;
+    --border-color: #4a5568;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --shadow-hover: rgba(0, 0, 0, 0.4);
+    --map-bg: #2d3436;
+    --container-bg: #1e272e;
+    --focus-ring: 0 0 0 3px rgba(93, 173, 226, 0.4);
 }
 
 /* --- General Styles (body, #app-container, headings, buttons, HUD etc.) --- */
@@ -59,7 +90,7 @@ body {
 }
 
 #app-container {
-    background-color: var(--light-text);
+    background-color: var(--container-bg);
     border-radius: 16px;
     box-shadow: 0 8px 30px var(--shadow-color);
     max-width: 900px;
@@ -164,7 +195,7 @@ button:focus-visible {
     justify-content: space-between; 
     align-items: center; 
     padding: 16px 25px; 
-    background-color: var(--light-text); 
+    background-color: var(--container-bg); 
     border-bottom: 1px solid var(--border-color); 
     z-index: 1001; 
     flex-shrink: 0; 
@@ -231,7 +262,7 @@ button:focus-visible {
     left: 0; 
     width: 100%; 
     height: 100%; 
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 249, 250, 0.98) 100%);
+    background: linear-gradient(135deg, var(--container-bg) 0%, var(--light-bg) 100%);
     display: flex; 
     flex-direction: column; 
     justify-content: center; 
@@ -253,7 +284,7 @@ button:focus-visible {
 .start-area-content {
     max-width: 500px;
     padding: 40px;
-    background: var(--light-text);
+    background: var(--container-bg);
     border-radius: 20px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
@@ -471,7 +502,7 @@ button:focus-visible {
     transition: opacity 0.3s ease, visibility 0s linear 0.3s; 
 }
 #menu-content { 
-    background-color: var(--light-text); 
+    background-color: var(--container-bg); 
     padding: 32px 40px; 
     border-radius: 16px; 
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25); 
@@ -526,6 +557,76 @@ button:focus-visible {
     box-sizing: border-box; 
 }
 #menu-content button:first-of-type { margin-top: 0; }
+
+/* Dark Mode Toggle */
+.theme-toggle-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+.theme-toggle-container span {
+    color: var(--dark-text);
+    font-weight: 500;
+}
+.theme-toggle {
+    position: relative;
+    width: 52px;
+    height: 28px;
+    background-color: var(--border-color);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+    margin: 0;
+}
+.theme-toggle:hover {
+    transform: none;
+    box-shadow: none;
+}
+.theme-toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    background-color: var(--container-bg);
+    border-radius: 50%;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+.theme-toggle.active {
+    background-color: var(--primary-color);
+}
+.theme-toggle.active::after {
+    transform: translateX(24px);
+}
+.theme-toggle-icon {
+    position: absolute;
+    font-size: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: opacity 0.3s ease;
+}
+.theme-toggle-icon.sun {
+    left: 6px;
+    opacity: 1;
+}
+.theme-toggle-icon.moon {
+    right: 6px;
+    opacity: 0;
+}
+.theme-toggle.active .theme-toggle-icon.sun {
+    opacity: 0;
+}
+.theme-toggle.active .theme-toggle-icon.moon {
+    opacity: 1;
+}
 
 /* --- Leaflet Specific Adjustments --- */
 .leaflet-control-zoom { border-radius: 8px !important; box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important; }
