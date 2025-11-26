@@ -32,6 +32,14 @@ const menuBestStreakElement = document.getElementById('menu-best-streak');
 const menuDifficultyElement = document.getElementById('menu-difficulty');
 const menuShieldsElement = document.getElementById('menu-shields'); // NEW
 
+// NEW: High Score and Mastery Elements
+const hudHighScoreElement = document.getElementById('hud-high-score');
+const menuHighScoreElement = document.getElementById('menu-high-score');
+const menuMasteredCountElement = document.getElementById('menu-mastered-count');
+
+// NEW: Confetti Canvas
+const confettiCanvas = document.getElementById('confetti-canvas');
+let confettiCtx = null;
 
 // --- Spelvariabler ---
 let map;
@@ -44,6 +52,236 @@ let currentStreak = 0;
 let bestStreak = 0;
 let rescueTokens = 0; // NEW: Rescue Shields
 let consecutiveErrors = 0; // NEW: Track consecutive errors
+let highScore = 0; // NEW: High score tracking
+let capitalMastery = {}; // NEW: Track mastery per capital { city: { correct: n, incorrect: n } }
+
+// --- Sound System ---
+let audioContext = null;
+let soundEnabled = true;
+
+function initAudioContext() {
+    if (!audioContext) {
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.warn("Web Audio API not supported:", e);
+            soundEnabled = false;
+        }
+    }
+    return audioContext;
+}
+
+function playSound(type) {
+    if (!soundEnabled) return;
+    const ctx = initAudioContext();
+    if (!ctx) return;
+    
+    // Resume audio context if suspended (browser autoplay policy)
+    if (ctx.state === 'suspended') {
+        ctx.resume();
+    }
+    
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    const now = ctx.currentTime;
+    
+    switch (type) {
+        case 'correct':
+            // Pleasant ascending tone
+            oscillator.frequency.setValueAtTime(440, now);
+            oscillator.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+            gainNode.gain.setValueAtTime(0.3, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            oscillator.start(now);
+            oscillator.stop(now + 0.3);
+            break;
+        case 'incorrect':
+            // Descending tone
+            oscillator.frequency.setValueAtTime(330, now);
+            oscillator.frequency.exponentialRampToValueAtTime(165, now + 0.2);
+            gainNode.gain.setValueAtTime(0.25, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            oscillator.start(now);
+            oscillator.stop(now + 0.3);
+            break;
+        case 'shield':
+            // Magical chime sound
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(523, now);
+            oscillator.frequency.setValueAtTime(659, now + 0.1);
+            oscillator.frequency.setValueAtTime(784, now + 0.2);
+            gainNode.gain.setValueAtTime(0.25, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+            oscillator.start(now);
+            oscillator.stop(now + 0.4);
+            break;
+        case 'highscore':
+            // Triumphant fanfare
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(523, now);
+            oscillator.frequency.setValueAtTime(659, now + 0.15);
+            oscillator.frequency.setValueAtTime(784, now + 0.3);
+            oscillator.frequency.setValueAtTime(1047, now + 0.45);
+            gainNode.gain.setValueAtTime(0.3, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+            oscillator.start(now);
+            oscillator.stop(now + 0.6);
+            break;
+        case 'mastery':
+            // Achievement unlock sound
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(440, now);
+            oscillator.frequency.setValueAtTime(554, now + 0.08);
+            oscillator.frequency.setValueAtTime(659, now + 0.16);
+            gainNode.gain.setValueAtTime(0.25, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+            oscillator.start(now);
+            oscillator.stop(now + 0.35);
+            break;
+        case 'streak':
+            // Streak milestone sound
+            oscillator.type = 'square';
+            oscillator.frequency.setValueAtTime(392, now);
+            oscillator.frequency.setValueAtTime(523, now + 0.1);
+            gainNode.gain.setValueAtTime(0.15, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+            oscillator.start(now);
+            oscillator.stop(now + 0.25);
+            break;
+    }
+}
+
+// --- Confetti System ---
+let confettiParticles = [];
+let confettiAnimationId = null;
+
+function initConfetti() {
+    if (confettiCanvas) {
+        confettiCtx = confettiCanvas.getContext('2d');
+        resizeConfettiCanvas();
+        window.addEventListener('resize', resizeConfettiCanvas);
+    }
+}
+
+function resizeConfettiCanvas() {
+    if (confettiCanvas) {
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+    }
+}
+
+function createConfetti(count = 100, colors = ['#f1c40f', '#e74c3c', '#3498db', '#2ecc71', '#9b59b6']) {
+    if (!confettiCtx) return;
+    
+    for (let i = 0; i < count; i++) {
+        confettiParticles.push({
+            x: Math.random() * confettiCanvas.width,
+            y: -10 - Math.random() * 50,
+            size: Math.random() * 8 + 4,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            speedX: (Math.random() - 0.5) * 4,
+            speedY: Math.random() * 3 + 2,
+            rotation: Math.random() * 360,
+            rotationSpeed: (Math.random() - 0.5) * 10,
+            shape: Math.random() > 0.5 ? 'rect' : 'circle'
+        });
+    }
+    
+    if (!confettiAnimationId) {
+        animateConfetti();
+    }
+}
+
+function animateConfetti() {
+    if (!confettiCtx || confettiParticles.length === 0) {
+        confettiAnimationId = null;
+        return;
+    }
+    
+    confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    
+    confettiParticles = confettiParticles.filter(p => {
+        p.x += p.speedX;
+        p.y += p.speedY;
+        p.rotation += p.rotationSpeed;
+        p.speedY += 0.1; // Gravity
+        
+        confettiCtx.save();
+        confettiCtx.translate(p.x, p.y);
+        confettiCtx.rotate(p.rotation * Math.PI / 180);
+        confettiCtx.fillStyle = p.color;
+        
+        if (p.shape === 'rect') {
+            confettiCtx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+        } else {
+            confettiCtx.beginPath();
+            confettiCtx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+            confettiCtx.fill();
+        }
+        
+        confettiCtx.restore();
+        
+        return p.y < confettiCanvas.height + 20;
+    });
+    
+    confettiAnimationId = requestAnimationFrame(animateConfetti);
+}
+
+function triggerConfetti(type = 'default') {
+    switch (type) {
+        case 'highscore':
+            // Gold and special colors for high score
+            createConfetti(150, ['#f1c40f', '#f39c12', '#e67e22', '#ffd700', '#ffec8b']);
+            break;
+        case 'mastery':
+            // Green celebration for mastery
+            createConfetti(80, ['#2ecc71', '#27ae60', '#1abc9c', '#16a085', '#f1c40f']);
+            break;
+        case 'streak':
+            // Fire colors for streak
+            createConfetti(60, ['#e74c3c', '#f39c12', '#f1c40f', '#e67e22']);
+            break;
+        default:
+            createConfetti(100);
+    }
+}
+
+// --- Capital Mastery System ---
+const MASTERY_THRESHOLD = 3; // Correct answers needed to master a capital
+
+function updateCapitalMastery(city, isCorrect) {
+    if (!capitalMastery[city]) {
+        capitalMastery[city] = { correct: 0, incorrect: 0 };
+    }
+    
+    if (isCorrect) {
+        capitalMastery[city].correct++;
+    } else {
+        capitalMastery[city].incorrect++;
+    }
+    
+    // Check if just achieved mastery
+    const wasMastered = capitalMastery[city].correct - 1 >= MASTERY_THRESHOLD;
+    const isMastered = capitalMastery[city].correct >= MASTERY_THRESHOLD;
+    
+    if (isMastered && !wasMastered && isCorrect) {
+        // Just achieved mastery!
+        return true;
+    }
+    return false;
+}
+
+function getMasteredCount() {
+    return Object.values(capitalMastery).filter(m => m.correct >= MASTERY_THRESHOLD).length;
+}
+
+function getMasteryProgress(city) {
+    if (!capitalMastery[city]) return 0;
+    return Math.min(capitalMastery[city].correct / MASTERY_THRESHOLD, 1);
+}
 
 // --- Konstanter ---
 const MIN_CHOICES = 2; // Start with 2 choices
@@ -62,9 +300,11 @@ let blockNextQuestion = false; // NEW: Block advancing question during shield pr
 let shieldPromptTimeout = null; // Variable to hold shield prompt timeout
 
 // --- Local Storage Keys ---
-const STORAGE_PREFIX = 'europakollen_v3_'; // Update version prefix
+const STORAGE_PREFIX = 'europakollen_v4_'; // Update version prefix for new features
 const STATE_KEY = STORAGE_PREFIX + 'gameState';
 const THEME_KEY = STORAGE_PREFIX + 'theme';
+const MASTERY_KEY = STORAGE_PREFIX + 'capitalMastery';
+const HIGH_SCORE_KEY = STORAGE_PREFIX + 'highScore';
 
 // --- Theme Variables ---
 let currentTheme = 'light';
@@ -247,6 +487,11 @@ function updateHUD() {
     hudStreakElement.textContent = currentStreak;
     hudShieldsElement.textContent = rescueTokens; // Update shield count
     
+    // Update high score display
+    if (hudHighScoreElement) {
+        hudHighScoreElement.textContent = highScore;
+    }
+    
     // Update progress indicator
     if (hudProgressElement && allCapitals.length > 0) {
         const totalQuestions = allCapitals.length;
@@ -262,6 +507,18 @@ function updateMenuStats() {
      menuBestStreakElement.textContent = bestStreak;
      menuDifficultyElement.textContent = numChoices;
      menuShieldsElement.textContent = rescueTokens; // Update shields in menu
+     
+     // Update high score in menu
+     if (menuHighScoreElement) {
+         menuHighScoreElement.textContent = highScore;
+     }
+     
+     // Update mastered count in menu
+     if (menuMasteredCountElement) {
+         const masteredCount = getMasteredCount();
+         const totalCapitals = allCapitals.length;
+         menuMasteredCountElement.textContent = `${masteredCount}/${totalCapitals}`;
+     }
 }
 
 // Modified showNotification to handle refined text and shield prompt integration
@@ -540,6 +797,21 @@ function handleMarkerClick(event) {
         if (currentStreak > bestStreak) {
             bestStreak = currentStreak;
         }
+        
+        // Play correct sound
+        playSound('correct');
+        
+        // Update capital mastery
+        const justMastered = updateCapitalMastery(correctAnswer.city, true);
+        
+        // Check for new high score
+        let isNewHighScore = false;
+        if (score > highScore) {
+            highScore = score;
+            isNewHighScore = true;
+            saveHighScore();
+        }
+        
         // Refined Correct Message
         const correctMsg = `✅ Perfekt! ${correctAnswer.city} (${correctAnswer.country}) är rätt! +1 Poäng!`;
         showNotification(correctMsg, 'correct', 2500);
@@ -560,6 +832,24 @@ function handleMarkerClick(event) {
         if (clickedMarker) {
             map.flyTo(clickedMarker.getLatLng(), 7, { duration: 0.8, easeLinearity: 0.4 });
         }
+        
+        // Trigger celebrations for achievements
+        if (isNewHighScore && score > 1) {
+            setTimeout(() => {
+                playSound('highscore');
+                triggerConfetti('highscore');
+                showNotification(`🏆 Nytt rekord! ${score} poäng!`, 'shield-earned', 3000);
+            }, 2600);
+        }
+        
+        if (justMastered) {
+            setTimeout(() => {
+                playSound('mastery');
+                triggerConfetti('mastery');
+                const masteredCount = getMasteredCount();
+                showNotification(`⭐ ${correctAnswer.city} bemästrad! (${masteredCount}/${allCapitals.length})`, 'shield-earned', 3000);
+            }, isNewHighScore ? 5600 : 2600);
+        }
 
         // Check for shield award
         if (currentStreak > 0 && currentStreak % STREAK_MILESTONE_FOR_TOKEN === 0) {
@@ -567,15 +857,23 @@ function handleMarkerClick(event) {
             console.log("Shield earned! Total:", rescueTokens);
             const shieldEarnedMsg = `🛡️ Grym streak på ${currentStreak}! Du fick en sköld!`;
             // Show shield notification *after* correct answer feedback fades
+            const shieldDelay = (isNewHighScore ? 3000 : 0) + (justMastered ? 3000 : 0) + 2600;
             setTimeout(() => {
+                 playSound('shield');
                  showNotification(shieldEarnedMsg, 'shield-earned', 3000);
                  updateHUD(); // Update HUD here too for immediate shield visibility
                  updateMenuStats();
                  saveState();
-            }, 2600); // Delay slightly longer than correct feedback
+            }, shieldDelay);
         } else {
             // Save state even if no shield was earned
              saveState();
+        }
+        
+        // Check for streak milestone confetti (every 5 streak, but not at shield milestone)
+        if (currentStreak > 0 && currentStreak % STREAK_MILESTONE_DIFFICULTY_INCREASE === 0 && currentStreak % STREAK_MILESTONE_FOR_TOKEN !== 0) {
+            playSound('streak');
+            triggerConfetti('streak');
         }
 
         // Check for difficulty increase AFTER processing the correct answer
@@ -584,6 +882,12 @@ function handleMarkerClick(event) {
     } else { // Incorrect Answer
         consecutiveErrors++; // Increment consecutive errors
         console.log(`Incorrect. Consecutive errors: ${consecutiveErrors}`);
+        
+        // Play incorrect sound
+        playSound('incorrect');
+        
+        // Update capital mastery (incorrect)
+        updateCapitalMastery(correctAnswer.city, false);
 
         const distance = calculateDistance(clickedCapital.lat, clickedCapital.lon, correctAnswer.lat, correctAnswer.lon);
         // Refined Incorrect Message (base part)
@@ -633,6 +937,7 @@ function handleMarkerClick(event) {
     adjustMarkerZIndex(); // Ensure markers layer correctly
     updateHUD(); // Update HUD immediately
     updateMenuStats(); // Update menu data
+    saveMastery(); // Save mastery data
 
     // Schedule next question (only if shield prompt is NOT active)
     // Delay depends on outcome and whether prompt will be shown
@@ -810,12 +1115,13 @@ function loadState() {
 
 function resetGame() {
     console.log("Resetting game...");
-     if (!confirm("Är du säker på att du vill nollställa spelet? All statistik och alla sköldar försvinner.")) {
+     if (!confirm("Är du säker på att du vill nollställa spelet? All statistik och alla sköldar försvinner. (Rekord och bemästring sparas)")) {
         console.log("Reset cancelled by user.");
         return;
      }
 
     localStorage.removeItem(STATE_KEY);
+    // Note: High score and mastery are preserved on reset
     hideMenu();
     hidePrompt();
     hideNotification();
@@ -850,6 +1156,58 @@ function resetGame() {
         console.error("Reset failed, likely due to missing capital data.");
         startArea.classList.remove('hidden');
     }
+}
+
+// --- High Score Functions ---
+function saveHighScore() {
+    try {
+        localStorage.setItem(HIGH_SCORE_KEY, JSON.stringify(highScore));
+    } catch (e) {
+        console.error("Could not save high score:", e);
+    }
+}
+
+function loadHighScore() {
+    try {
+        const saved = localStorage.getItem(HIGH_SCORE_KEY);
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (typeof parsed === 'number' && parsed >= 0) {
+                highScore = parsed;
+                return true;
+            }
+        }
+    } catch (e) {
+        console.error("Could not load high score:", e);
+    }
+    highScore = 0;
+    return false;
+}
+
+// --- Mastery Functions ---
+function saveMastery() {
+    try {
+        localStorage.setItem(MASTERY_KEY, JSON.stringify(capitalMastery));
+    } catch (e) {
+        console.error("Could not save mastery data:", e);
+    }
+}
+
+function loadMastery() {
+    try {
+        const saved = localStorage.getItem(MASTERY_KEY);
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (typeof parsed === 'object' && parsed !== null) {
+                capitalMastery = parsed;
+                return true;
+            }
+        }
+    } catch (e) {
+        console.error("Could not load mastery data:", e);
+    }
+    capitalMastery = {};
+    return false;
 }
 
 function toggleMenu() {
@@ -963,6 +1321,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize theme early to prevent flash of unstyled content
     loadTheme();
     applyTheme(currentTheme);
+    
+    // Initialize confetti system
+    initConfetti();
+    
+    // Load high score and mastery data
+    loadHighScore();
+    loadMastery();
 
     // Add theme toggle listener
     const themeToggleBtn = document.getElementById('theme-toggle');

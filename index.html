@@ -22,12 +22,20 @@
 <body>
 
     <div id="app-container">
+        <!-- Confetti Canvas -->
+        <canvas id="confetti-canvas"></canvas>
+        
         <!-- Top HUD -->
         <div id="top-hud" role="banner">
             <div class="hud-left">
                 <span class="hud-item" aria-label="Poäng">
                     <span class="hud-label">Poäng</span>
                     <strong id="hud-score">0</strong>
+                </span>
+                <span class="hud-item hud-item-highscore" aria-label="Rekord">
+                    <span class="hud-label">Rekord</span>
+                    <strong id="hud-high-score">0</strong>
+                    <span class="hud-icon">🏆</span>
                 </span>
                 <span class="hud-item" aria-label="Streak">
                     <span class="hud-label">Streak</span>
@@ -106,6 +114,8 @@
                      <p>Fråga: <strong id="menu-question-number">0</strong></p>
                      <p>Träffsäkerhet: <strong id="menu-accuracy">-%</strong></p>
                      <p>Bästa Streak: <strong id="menu-best-streak">0</strong></p>
+                     <p>Rekord: <strong id="menu-high-score">0</strong> 🏆</p>
+                     <p>Bemästrade: <strong id="menu-mastered-count">0/0</strong> ⭐</p>
                      <p>Nuvarande Svårighet (Val): <strong id="menu-difficulty">0</strong></p>
                      <p>Sköldar: <strong id="menu-shields">0</strong> 🛡️</p>
                 </div>
