@@ -23,18 +23,30 @@
 
     <div id="app-container">
         <!-- Top HUD -->
-        <div id="top-hud">
+        <div id="top-hud" role="banner">
             <div class="hud-left">
-                <span class="hud-item">Poäng: <strong id="hud-score">0</strong></span>
-                <span class="hud-item">Streak: <strong id="hud-streak">0</strong> 🔥</span>
-                <span class="hud-item">Sköldar: <strong id="hud-shields">0</strong> 🛡️</span>
+                <span class="hud-item" aria-label="Poäng">
+                    <span class="hud-label">Poäng</span>
+                    <strong id="hud-score">0</strong>
+                </span>
+                <span class="hud-item" aria-label="Streak">
+                    <span class="hud-label">Streak</span>
+                    <strong id="hud-streak">0</strong>
+                    <span class="hud-icon">🔥</span>
+                </span>
+                <span class="hud-item" aria-label="Sköldar">
+                    <span class="hud-label">Sköldar</span>
+                    <strong id="hud-shields">0</strong>
+                    <span class="hud-icon">🛡️</span>
+                </span>
             </div>
             <div class="hud-center">
                  <h1 id="game-title">Europakollen!</h1>
+                 <span id="hud-progress" class="hud-progress" aria-live="polite"></span>
             </div>
             <div class="hud-right">
                 <button id="sound-toggle-button" aria-label="Ljud på/av" title="Ljud på/av">🔊</button>
-                <button id="menu-button" aria-label="Öppna meny">☰</button> <!-- Simple text menu icon -->
+                <button id="menu-button" aria-label="Öppna meny" title="Öppna meny">☰</button>
             </div>
         </div>
 
@@ -64,12 +76,17 @@
             </div>
 
              <!-- Start Area (Overlays map initially) -->
-            <div id="start-area">
-                 <h2>Välkommen till Europakollen!</h2>
-                 <!-- Paragraph text will be updated by JS on DOMContentLoaded -->
-                <p>Klicka på kartan för att gissa huvudstadens läge.</p>
-                <button id="start-button" class="button-primary">Starta Nytt Spel!</button>
-                <button id="continue-button" class="button-secondary" style="display: none;">Fortsätt Spel</button>
+            <div id="start-area" role="dialog" aria-labelledby="welcome-heading">
+                 <div class="start-area-content">
+                     <div class="logo-icon" aria-hidden="true">🗺️</div>
+                     <h2 id="welcome-heading">Välkommen till Europakollen!</h2>
+                     <!-- Paragraph text will be updated by JS on DOMContentLoaded -->
+                     <p class="start-description">Klicka på kartan för att gissa huvudstadens läge.</p>
+                     <div class="start-buttons">
+                         <button id="start-button" class="button-primary button-large">Starta Nytt Spel!</button>
+                         <button id="continue-button" class="button-secondary button-large" style="display: none;">Fortsätt Spel</button>
+                     </div>
+                 </div>
             </div>
 
         </div>
