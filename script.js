@@ -881,7 +881,8 @@ function loadTheme() {
             currentTheme = savedTheme;
         } else {
             // Check for system preference
-            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            const darkModeMediaQuery = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+            if (darkModeMediaQuery && darkModeMediaQuery.matches) {
                 currentTheme = 'dark';
             } else {
                 currentTheme = 'light';
@@ -954,9 +955,6 @@ menuOverlay.addEventListener('click', (event) => {
 shieldYesButton.addEventListener('click', () => handleShieldResponse(true));
 shieldNoButton.addEventListener('click', () => handleShieldResponse(false));
 
-// Theme toggle listener
-document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
-
 
 // --- Initialisering vid sidladdning ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -965,6 +963,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize theme early to prevent flash of unstyled content
     loadTheme();
     applyTheme(currentTheme);
+
+    // Add theme toggle listener
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', toggleTheme);
+    }
 
     if (!allCapitals || allCapitals.length === 0) {
        if (typeof europeanCapitals !== 'undefined') {
