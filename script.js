@@ -283,13 +283,14 @@ function getTimeForDifficulty(difficulty) {
 
 function startTimer() {
     stopTimer(); // Clear any existing timer
-    timeRemaining = getTimeForDifficulty(numChoices);
+    const initialTime = getTimeForDifficulty(numChoices);
+    timeRemaining = initialTime;
     timerStartTime = Date.now();
     updateTimerDisplay();
     
     timerInterval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - timerStartTime) / 1000);
-        timeRemaining = Math.max(0, getTimeForDifficulty(numChoices) - elapsed);
+        timeRemaining = Math.max(0, initialTime - elapsed);
         updateTimerDisplay();
         
         if (timeRemaining <= 0) {
@@ -369,19 +370,8 @@ function handleTimeUp() {
     
     const timeUpMsg = `⏱️ Tiden är ute! Rätt svar var ${correctAnswer.city} (${correctAnswer.country}).`;
     
-    // Handle streak and shield logic similar to incorrect answer
-    const hadStreak = currentStreak > 0;
-    if (rescueTokens > 0 && hadStreak) {
-        console.log("Offering shield to save streak after timeout.");
-        showNotification(timeUpMsg, 'incorrect', 7000, true);
-    } else {
-        const streakLostMsg = hadStreak ? ` Streak på ${currentStreak} bruten!` : '';
-        console.log(`Time up - Streak broken (streak was ${currentStreak}, shields: ${rescueTokens}).`);
-        currentStreak = 0;
-        showNotification(timeUpMsg + streakLostMsg, 'incorrect', 3500);
-        adjustDifficulty();
-        saveState();
-    }
+    // Handle streak and shield logic using shared helper
+    const result = handleIncorrectStreak(timeUpMsg);
     
     updateHUD();
     updateMenuStats();
@@ -389,8 +379,27 @@ function handleTimeUp() {
     
     // Schedule next question
     if (!blockNextQuestion) {
-        const delay = (rescueTokens > 0 && hadStreak) ? 7200 : 3700;
+        const delay = result.shieldOffered ? 7200 : 3700;
         scheduleNextQuestion(delay);
+    }
+}
+
+// Helper function to handle streak loss and shield offer logic
+// Used by both handleTimeUp and handleMarkerClick (incorrect answer)
+function handleIncorrectStreak(message) {
+    const hadStreak = currentStreak > 0;
+    if (rescueTokens > 0 && hadStreak) {
+        console.log("Offering shield to save streak.");
+        showNotification(message, 'incorrect', 7000, true);
+        return { hadStreak, shieldOffered: true };
+    } else {
+        const streakLostMsg = hadStreak ? ` Streak på ${currentStreak} bruten!` : '';
+        console.log(`Streak broken (streak was ${currentStreak}, shields: ${rescueTokens}).`);
+        currentStreak = 0;
+        showNotification(message + streakLostMsg, 'incorrect', 3500);
+        adjustDifficulty();
+        saveState();
+        return { hadStreak, shieldOffered: false };
     }
 }
 
@@ -1071,22 +1080,8 @@ function handleMarkerClick(event) {
         } else if (clickedMarker) { map.flyTo(clickedMarker.getLatLng(), 6); }
 
 
-        // Offer Shield or Reset Streak
-        const hadStreak = currentStreak > 0; // Store if streak was active *before* this guess
-        if (rescueTokens > 0 && hadStreak) {
-            console.log("Offering shield to save streak.");
-            // Show incorrect message WITH shield prompt
-             showNotification(incorrectBaseMsg, 'incorrect', 7000, true); // offerShield = true
-             // saveState() will happen in handleShieldResponse or scheduleNextQuestion
-        } else {
-            const streakLostMsg = hadStreak ? ` Streak på ${currentStreak} bruten!` : ''; // Add if streak > 0
-            console.log(`Streak broken (streak was ${currentStreak}, shields: ${rescueTokens}).`);
-            currentStreak = 0; // Reset streak here
-             showNotification(incorrectBaseMsg + streakLostMsg, 'incorrect', 3500); // Show combined message
-             // Check difficulty decrease AFTER processing incorrect answer w/o shield save
-             adjustDifficulty(); // This might save state
-             saveState(); // Save state after streak is confirmed broken
-        }
+        // Offer Shield or Reset Streak using shared helper
+        const result = handleIncorrectStreak(incorrectBaseMsg);
     }
 
     adjustMarkerZIndex(); // Ensure markers layer correctly
@@ -1098,12 +1093,7 @@ function handleMarkerClick(event) {
     // Delay depends on outcome and whether prompt will be shown
     let nextQuestionDelay = 2700; // Default for correct
     if (!isCorrect) {
-        // If shield prompt will be offered (tokens > 0 and had streak)
-        if (rescueTokens > 0 && currentStreak > 0) { // Check currentStreak *before* reset
-            nextQuestionDelay = 7200; // Wait longer for prompt timeout possibility
-        } else {
-            nextQuestionDelay = 3700; // Normal incorrect delay
-        }
+        nextQuestionDelay = blockNextQuestion ? 7200 : 3700;
     }
 
     if (!blockNextQuestion) {
