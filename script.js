@@ -24,6 +24,8 @@ const hudScoreElement = document.getElementById('hud-score');
 const hudStreakElement = document.getElementById('hud-streak');
 const hudShieldsElement = document.getElementById('hud-shields'); // NEW
 const hudProgressElement = document.getElementById('hud-progress'); // NEW: Progress indicator
+const hudTimerElement = document.getElementById('hud-timer'); // Timer element
+const hudTimerItem = document.querySelector('.hud-item-timer'); // Timer container for styling
 
 // Menu Stats Elements
 const menuQuestionNumberElement = document.getElementById('menu-question-number');
@@ -54,6 +56,11 @@ let rescueTokens = 0; // NEW: Rescue Shields
 let consecutiveErrors = 0; // NEW: Track consecutive errors
 let highScore = 0; // NEW: High score tracking
 let capitalMastery = {}; // NEW: Track mastery per capital { city: { correct: n, incorrect: n } }
+
+// --- Timer Variables ---
+let timerInterval = null;
+let timeRemaining = 0;
+let timerStartTime = 0;
 
 // --- Sound System ---
 let audioContext = null;
@@ -151,6 +158,16 @@ function playSound(type) {
             oscillator.start(now);
             oscillator.stop(now + 0.25);
             break;
+        case 'timeout':
+            // Urgent timeout warning sound
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(200, now);
+            oscillator.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+            gainNode.gain.setValueAtTime(0.2, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+            oscillator.start(now);
+            oscillator.stop(now + 0.4);
+            break;
     }
 }
 
@@ -246,6 +263,134 @@ function triggerConfetti(type = 'default') {
             break;
         default:
             createConfetti(100);
+    }
+}
+
+// --- Timer System ---
+// Base time decreases as difficulty increases
+// At MIN_CHOICES (2): 15 seconds, at MAX_CHOICES (15): 8 seconds
+const BASE_TIME_EASY = 15; // seconds for easiest difficulty (2 choices)
+const BASE_TIME_HARD = 8;  // seconds for hardest difficulty (15 choices)
+const TIME_WARNING_THRESHOLD = 5; // Show warning when <= 5 seconds
+const TIME_DANGER_THRESHOLD = 3;  // Show danger when <= 3 seconds
+
+function getTimeForDifficulty(difficulty) {
+    // Linear interpolation between BASE_TIME_EASY and BASE_TIME_HARD
+    const range = MAX_CHOICES - MIN_CHOICES;
+    const progress = (difficulty - MIN_CHOICES) / range;
+    return Math.round(BASE_TIME_EASY - (BASE_TIME_EASY - BASE_TIME_HARD) * progress);
+}
+
+function startTimer() {
+    stopTimer(); // Clear any existing timer
+    timeRemaining = getTimeForDifficulty(numChoices);
+    timerStartTime = Date.now();
+    updateTimerDisplay();
+    
+    timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - timerStartTime) / 1000);
+        timeRemaining = Math.max(0, getTimeForDifficulty(numChoices) - elapsed);
+        updateTimerDisplay();
+        
+        if (timeRemaining <= 0) {
+            handleTimeUp();
+        }
+    }, 100); // Update every 100ms for smooth countdown
+}
+
+function stopTimer() {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+}
+
+function updateTimerDisplay() {
+    if (!hudTimerElement) return;
+    
+    hudTimerElement.textContent = timeRemaining;
+    
+    // Remove all timer classes first
+    hudTimerElement.classList.remove('timer-warning', 'timer-danger');
+    if (hudTimerItem) {
+        hudTimerItem.classList.remove('timer-warning', 'timer-danger');
+    }
+    
+    // Add appropriate class based on time remaining
+    if (timeRemaining <= TIME_DANGER_THRESHOLD) {
+        hudTimerElement.classList.add('timer-danger');
+        if (hudTimerItem) hudTimerItem.classList.add('timer-danger');
+    } else if (timeRemaining <= TIME_WARNING_THRESHOLD) {
+        hudTimerElement.classList.add('timer-warning');
+        if (hudTimerItem) hudTimerItem.classList.add('timer-warning');
+    }
+}
+
+function resetTimerDisplay() {
+    if (!hudTimerElement) return;
+    hudTimerElement.textContent = '--';
+    hudTimerElement.classList.remove('timer-warning', 'timer-danger');
+    if (hudTimerItem) {
+        hudTimerItem.classList.remove('timer-warning', 'timer-danger');
+    }
+}
+
+function handleTimeUp() {
+    stopTimer();
+    if (blockClicks) return; // Already processing an answer
+    
+    console.log("Time's up! Auto-marking as incorrect.");
+    blockClicks = true;
+    hidePrompt();
+    
+    // Play timeout sound
+    playSound('timeout');
+    
+    questionNumber++;
+    consecutiveErrors++;
+    
+    // Update capital mastery (incorrect)
+    if (correctAnswer && correctAnswer.city) {
+        updateCapitalMastery(correctAnswer.city, false);
+    }
+    
+    // Find and highlight the correct marker
+    const correctMapMarker = markers.find(m => m && m.options.capitalData.city === correctAnswer.city);
+    if (correctMapMarker?._icon) {
+        correctMapMarker._icon.classList.add('incorrect-marker-correct-reveal');
+    }
+    
+    // Dim other markers
+    markers.forEach(marker => {
+        if (marker !== correctMapMarker && marker._icon) {
+            marker._icon.classList.add('incorrect-marker-clicked');
+        }
+    });
+    
+    const timeUpMsg = `⏱️ Tiden är ute! Rätt svar var ${correctAnswer.city} (${correctAnswer.country}).`;
+    
+    // Handle streak and shield logic similar to incorrect answer
+    const hadStreak = currentStreak > 0;
+    if (rescueTokens > 0 && hadStreak) {
+        console.log("Offering shield to save streak after timeout.");
+        showNotification(timeUpMsg, 'incorrect', 7000, true);
+    } else {
+        const streakLostMsg = hadStreak ? ` Streak på ${currentStreak} bruten!` : '';
+        console.log(`Time up - Streak broken (streak was ${currentStreak}, shields: ${rescueTokens}).`);
+        currentStreak = 0;
+        showNotification(timeUpMsg + streakLostMsg, 'incorrect', 3500);
+        adjustDifficulty();
+        saveState();
+    }
+    
+    updateHUD();
+    updateMenuStats();
+    saveMastery();
+    
+    // Schedule next question
+    if (!blockNextQuestion) {
+        const delay = (rescueTokens > 0 && hadStreak) ? 7200 : 3700;
+        scheduleNextQuestion(delay);
     }
 }
 
@@ -396,6 +541,10 @@ function resetGameVariables(keepBestStreak = false) {
     numChoices = MIN_CHOICES; // Reset difficulty to minimum
     rescueTokens = INITIAL_RESCUE_TOKENS; // Start with initial tokens
     consecutiveErrors = 0; // Reset error counter
+
+    // Reset timer
+    stopTimer();
+    resetTimerDisplay();
 
      if (!allCapitals || allCapitals.length === 0) {
         if (typeof europeanCapitals !== 'undefined') {
@@ -713,6 +862,9 @@ function displayQuestion() {
          console.log("No valid markers to zoom to or map not ready.");
     }
 
+    // Start the timer for this question
+    startTimer();
+
     console.log("--- displayQuestion END ---");
 }
 
@@ -768,6 +920,9 @@ function handleMarkerClick(event) {
         console.error("Map not available in handleMarkerClick");
         return;
     }
+
+    // Stop the timer immediately when user clicks
+    stopTimer();
 
     blockClicks = true;
     console.log("Clicks blocked.");
