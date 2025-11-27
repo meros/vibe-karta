@@ -274,10 +274,10 @@ const BASE_TIME_HARD = 8;  // seconds for hardest difficulty (15 choices)
 const TIME_WARNING_THRESHOLD = 5; // Show warning when <= 5 seconds
 const TIME_DANGER_THRESHOLD = 3;  // Show danger when <= 3 seconds
 
-function getTimeForDifficulty(difficulty) {
+function getTimeForDifficulty(numChoicesLevel) {
     // Linear interpolation between BASE_TIME_EASY and BASE_TIME_HARD
     const range = MAX_CHOICES - MIN_CHOICES;
-    const progress = (difficulty - MIN_CHOICES) / range;
+    const progress = (numChoicesLevel - MIN_CHOICES) / range;
     return Math.round(BASE_TIME_EASY - (BASE_TIME_EASY - BASE_TIME_HARD) * progress);
 }
 
@@ -1081,7 +1081,7 @@ function handleMarkerClick(event) {
 
 
         // Offer Shield or Reset Streak using shared helper
-        const result = handleIncorrectStreak(incorrectBaseMsg);
+        handleIncorrectStreak(incorrectBaseMsg);
     }
 
     adjustMarkerZIndex(); // Ensure markers layer correctly
@@ -1090,9 +1090,10 @@ function handleMarkerClick(event) {
     saveMastery(); // Save mastery data
 
     // Schedule next question (only if shield prompt is NOT active)
-    // Delay depends on outcome and whether prompt will be shown
+    // Delay depends on outcome and whether shield prompt is shown (blockNextQuestion is set by handleIncorrectStreak)
     let nextQuestionDelay = 2700; // Default for correct
     if (!isCorrect) {
+        // If shield was offered, blockNextQuestion is true and we need longer delay
         nextQuestionDelay = blockNextQuestion ? 7200 : 3700;
     }
 
