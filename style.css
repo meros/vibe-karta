@@ -267,6 +267,22 @@ button:focus-visible {
 #hud-shields { color: var(--shield-color); }
 #hud-streak { color: var(--error-color-fg); }
 #hud-high-score { color: var(--trophy-color); }
+#hud-timer { color: var(--primary-color); transition: color 0.3s ease; }
+#hud-timer.timer-warning { color: var(--trophy-color); }
+#hud-timer.timer-danger { color: var(--error-color-fg); animation: pulse-timer 0.5s ease-in-out infinite; }
+@keyframes pulse-timer {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+.hud-item-timer {
+    transition: transform 0.2s ease, background-color 0.3s ease;
+}
+.hud-item-timer.timer-warning {
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.15) 0%, rgba(241, 196, 15, 0.2) 100%);
+}
+.hud-item-timer.timer-danger {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.15) 0%, rgba(192, 57, 43, 0.2) 100%);
+}
 .hud-item-highscore {
     background: linear-gradient(135deg, rgba(243, 156, 18, 0.1) 0%, rgba(241, 196, 15, 0.15) 100%);
 }
